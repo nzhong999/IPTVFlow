@@ -1,32 +1,32 @@
 # ✅ IPTV直播源清洗报告
->**生成时间**: 2026-02-19 12:02:15<br>
->**存活率**: 45.0%
+>**生成时间**: 2026-02-21 11:47:04<br>
+>**存活率**: 44.9%
 
 ## 📊 核心统计
 | 项目 | 数量 |
 |------|------|
-| 原始频道 | 1094 |
-| 唯一主机 | 351 |
-| 存活主机 | 158 |
-| 最终频道 | 340 |
+| 原始频道 | 1090 |
+| 唯一主机 | 343 |
+| 存活主机 | 154 |
+| 最终频道 | 331 |
 
 ## 🔗 源加载详情
 | 类型 | 标识 | 状态 | 频道数 | 错误信息 |
 |------|------|------|------|----------|
 | 远程 | `https://raw.githubusercontent.com/suxuang/myIPTV/main/ipv4.m3u` | ✅ 成功 | 2709 | - |
-| 远程 | `https://raw.githubusercontent.com/YueChan/Live/refs/heads/main/GNTV.m3u` | ✅ 成功 | 160 | - |
 | 远程 | `https://raw.githubusercontent.com/YueChan/Live/refs/heads/main/Global.m3u` | ✅ 成功 | 200 | - |
+| 远程 | `https://raw.githubusercontent.com/YueChan/Live/refs/heads/main/GNTV.m3u` | ✅ 成功 | 160 | - |
 | 远程 | `https://raw.wangqifei.eu.org/rtp` | ❌ 失败 | 0 | HTTP 404 |
 | 远程 | `https://iptv.cqshushu.com/index.php?s=KCSD96SXQAhNg-UhGACf4g&t=hotel&channels=1` | ❌ 失败 | 0 | HTTP 403 |
-| 远程 | `https://s.wangqifei.eu.org/live` | ✅ 成功 | 1073 | - |
+| 远程 | `https://s.wangqifei.eu.org/live` | ✅ 成功 | 1029 | - |
 
 ## 📺 分组分布
-- **📺 其他频道**: 117 个
-- **📺 卫视频道**: 78 个
-- **🌍 国际频道**: 59 个
-- **🇨🇳 央视频道**: 43 个
-- **🇭🇰 港澳台频道**: 22 个
-- **🧸 儿童动画**: 11 个
+- **📺 其他频道**: 113 个
+- **📺 卫视频道**: 79 个
+- **🌍 国际频道**: 58 个
+- **🇨🇳 央视频道**: 36 个
+- **🇭🇰 港澳台频道**: 25 个
+- **🧸 儿童动画**: 10 个
 - **🎬 影视频道**: 9 个
 - **🎓 教育频道**: 1 个
 
@@ -37,12 +37,12 @@
 - 1989年春晚
 - 2024年春晚
 - ABC
+- ASTRO AOD
 - Action Hollywood
 - Al Jazeera
 - Arirang
 - Astro AOD
 - Astro QJ
-- Astro欢喜
 - BBC Earth
 - Billiard
 - Bloomberg Asia
@@ -53,17 +53,12 @@
 - CCTV1
 - CCTV10
 - CCTV11
-- CCTV11戏曲
 - CCTV12
-- CCTV12社会与法
 - CCTV13
 - CCTV14
-- CCTV14少儿
 - CCTV15
-- CCTV15音乐
 - CCTV16
 - CCTV17
-- CCTV17农业农村
 - CCTV2
 - CCTV3
 - CCTV4
@@ -76,18 +71,15 @@
 - CCTV7国防军事
 - CCTV8
 - CCTV8K
-- CCTV8电视剧
 - CCTV9
+- CCTV9纪录
 - CCTV世界地理
 - CCTV兵器科技
 - CCTV央视台球
 - CCTV央视文化精品
-- CCTV女性时尚
 - CCTV怀旧剧场
 - CCTV电视指南
 - CCTV第一剧场
-- CCTV风云剧场
-- CCTV风云足球
 - CCTV风云音乐
 - CGTN
 - CGTN俄语
@@ -129,7 +121,6 @@
 - Mytime Movie
 - NBC News Now
 - NEWSMAX
-- NHL Network
 - National Geographic
 - New Kmovies
 - Newsmax
@@ -153,6 +144,7 @@
 - TVB Plus
 - TVBS亚洲
 - TVBS新闻
+- TVB无线新闻
 - TVB星河
 - Tastemade
 - Tennis
@@ -202,14 +194,12 @@
 - 剑阁综合
 - 动物星球
 - 北京卫视
+- 千禧经典
 - 南国都市
 - 厦门卫视
 - 台视新闻
 - 吉林卫视
-- 哈尔滨娱乐
-- 哈尔滨影视
-- 哈尔滨新闻综合
-- 哈尔滨生活
+- 唐人卫视
 - 四川卫视
 - 四川科教
 - 四海钓鱼
@@ -303,6 +293,7 @@
 - 湖北卫视
 - 湖南卫视
 - 熊猫直播
+- 爱奇艺
 - 环球旅游
 - 环球电视
 - 甘肃卫视
@@ -315,7 +306,6 @@
 - 纬来精采
 - 经济生活
 - 美亚C+
-- 美亚电影
 - 耀才财经
 - 苏州
 - 苏州文化生活
@@ -367,6 +357,7 @@
 - 韩国电影1
 - 韩国电影2
 - 香港卫视
+- 香港面包
 - 黄龙
 - 黑龙江卫视
 - 龙泉新闻综合
@@ -414,13 +405,13 @@
 - ABC News Live
 - AMC电影
 - ASTRO AEC
-- ASTRO AOD
 - ASTRO QJ
 - ASTRO欢喜
 - AXS TV Now
 - Action Movies
 - Adventure Earth
 - Astro AEC
+- Astro欢喜
 - Autentic History
 - Autentic Travel
 - BBC
@@ -452,15 +443,18 @@
 - CCTV 风云足球
 - CCTV 风云音乐
 - CCTV10科教
+- CCTV11戏曲
+- CCTV12社会与法
+- CCTV14少儿
+- CCTV15音乐
+- CCTV17农业农村
 - CCTV4中文国际
 - CCTV4欧洲
 - CCTV4美洲
-- CCTV5+体育
-- CCTV9纪录
+- CCTV8电视剧
 - CCTV中学生
 - CCTV发现之旅
 - CCTV老故事
-- CCTV🎁 风云剧场
 - CETV 01
 - CETV 04
 - CETV 1 综合教育
@@ -505,6 +499,7 @@
 - MYTV SUPER
 - NEWSMAX2
 - NHK World
+- NHL Network
 - NOW NEWS
 - NOW财经
 - NewTV 东北热剧
@@ -566,7 +561,6 @@
 - TVBS精采
 - TVB娱乐新闻
 - TVB戏剧
-- TVB无线新闻
 - TVB无线星河
 - TVB明珠
 - TVB武侠
@@ -680,7 +674,6 @@
 - 北京新闻
 - 北京纪实科教8K
 - 十堰新闻
-- 千禧经典
 - 华数
 - 华视新闻
 - 华语影视
@@ -700,7 +693,6 @@
 - 叙州新闻综合
 - 古天乐电影
 - 古装武侠
-- 可乐影院
 - 台湾+
 - 名侦探柯南
 - 周星驰电影
@@ -765,6 +757,10 @@
 - 咪咕赛事播53
 - 哆啦A梦
 - 哈哈炫动
+- 哈尔滨娱乐
+- 哈尔滨影视
+- 哈尔滨新闻综合
+- 哈尔滨生活
 - 哈尔滨都市咨询
 - 哒啵电竞
 - 唐诡之西行
@@ -972,7 +968,6 @@
 - 熊猫频道8
 - 熊猫频道9
 - 爱上
-- 爱奇艺
 - 爱情公寓
 - 父母爱情
 - 特种兵之火凤凰
@@ -1036,6 +1031,7 @@
 - 绵阳综合
 - 网神影厅
 - 罪犯电影
+- 美亚电影
 - 翡翠
 - 老故事
 - 芈月传
@@ -1084,6 +1080,7 @@
 - 金鹰卡通
 - 金鹰纪实
 - 鉴证实录
+- 铁甲影院
 - 铁齿铜牙纪晓岚
 - 镇江新闻综合
 - 长沙女性
@@ -1101,7 +1098,6 @@
 - 靖天电影
 - 靖洋戏剧
 - 非凡新闻
-- 香港面包
 - 鬼吹灯之云南虫谷
 - 鬼吹灯之怒晴湘西
 - 鬼吹灯之精绝古城
