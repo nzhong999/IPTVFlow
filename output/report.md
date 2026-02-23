@@ -1,33 +1,33 @@
 # ✅ IPTV直播源清洗报告
->**生成时间**: 2026-02-22 12:00:16<br>
->**存活率**: 44.3%
+>**生成时间**: 2026-02-23 12:04:17<br>
+>**存活率**: 45.5%
 
 ## 📊 核心统计
 | 项目 | 数量 |
 |------|------|
-| 原始频道 | 1059 |
-| 唯一主机 | 334 |
-| 存活主机 | 148 |
-| 最终频道 | 345 |
+| 原始频道 | 1064 |
+| 唯一主机 | 345 |
+| 存活主机 | 157 |
+| 最终频道 | 343 |
 
 ## 🔗 源加载详情
 | 类型 | 标识 | 状态 | 频道数 | 错误信息 |
 |------|------|------|------|----------|
+| 远程 | `https://raw.githubusercontent.com/YueChan/Live/refs/heads/main/GNTV.m3u` | ✅ 成功 | 160 | - |
 | 远程 | `https://raw.githubusercontent.com/suxuang/myIPTV/main/ipv4.m3u` | ✅ 成功 | 2709 | - |
 | 远程 | `https://raw.githubusercontent.com/YueChan/Live/refs/heads/main/Global.m3u` | ✅ 成功 | 200 | - |
-| 远程 | `https://raw.githubusercontent.com/YueChan/Live/refs/heads/main/GNTV.m3u` | ✅ 成功 | 160 | - |
+| 远程 | `https://iptv.cqshushu.com/index.php?s=KCSD96SXQAhNg-UhGACf4g&t=hotel&channels=1` | ❌ 失败 | 0 | HTTP 403 |
 | 远程 | `https://raw.wangqifei.eu.org/rtp` | ❌ 失败 | 0 | HTTP 404 |
-| 远程 | `https://s.wangqifei.eu.org/live` | ✅ 成功 | 893 | - |
-| 远程 | `https://iptv.cqshushu.com/index.php?s=KCSD96SXQAhNg-UhGACf4g&t=hotel&channels=1` | ❌ 失败 | 0 | HTTPSConnectionPool(host='iptv.cqshushu.com', port=443): Read timed out. (read timeout=10) |
+| 远程 | `https://s.wangqifei.eu.org/live` | ✅ 成功 | 1089 | - |
 
 ## 📺 分组分布
-- **📺 其他频道**: 117 个
-- **📺 卫视频道**: 76 个
+- **📺 其他频道**: 114 个
+- **📺 卫视频道**: 77 个
 - **🌍 国际频道**: 59 个
-- **🇨🇳 央视频道**: 46 个
-- **🇭🇰 港澳台频道**: 25 个
-- **🧸 儿童动画**: 11 个
-- **🎬 影视频道**: 10 个
+- **🇨🇳 央视频道**: 48 个
+- **🇭🇰 港澳台频道**: 23 个
+- **🧸 儿童动画**: 12 个
+- **🎬 影视频道**: 9 个
 - **🎓 教育频道**: 1 个
 
 ## 📋 可用频道列表
@@ -53,7 +53,6 @@
 - CCTV 高尔夫网球
 - CCTV1
 - CCTV10
-- CCTV10科教
 - CCTV11
 - CCTV11戏曲
 - CCTV12
@@ -62,6 +61,7 @@
 - CCTV14
 - CCTV14少儿
 - CCTV15
+- CCTV15音乐
 - CCTV16
 - CCTV16奥林匹克
 - CCTV17
@@ -72,7 +72,6 @@
 - CCTV4K真
 - CCTV4中文国际
 - CCTV4欧洲
-- CCTV4美洲
 - CCTV5
 - CCTV5+
 - CCTV6
@@ -86,13 +85,17 @@
 - CCTV9纪录
 - CCTV世界地理
 - CCTV兵器科技
+- CCTV卫生健康
 - CCTV央视台球
 - CCTV央视文化精品
 - CCTV女性时尚
+- CCTV怀旧剧场
 - CCTV电视指南
 - CCTV第一剧场
+- CCTV风云剧场
 - CCTV风云足球
 - CCTV风云音乐
+- CCTV🎁 央视台球
 - CGTN
 - CGTN俄语
 - CGTN法语
@@ -100,7 +103,6 @@
 - CHC动作电影
 - CHC家庭影院
 - CHC影迷电影
-- CHC高清电影
 - CMT
 - CNA
 - CNN
@@ -153,8 +155,6 @@
 - SBS Drama
 - TRT World
 - TVB Jade
-- TVB Pearl
-- TVB Plus
 - TVBS亚洲
 - TVBS新闻
 - TVB无线新闻
@@ -166,7 +166,6 @@
 - Trace Sports
 - Trace Urban
 - VIU
-- Viu
 - ViuTV6
 - Wild Earth
 - WionNews
@@ -212,10 +211,7 @@
 - 厦门卫视
 - 台视新闻
 - 吉林卫视
-- 哈尔滨娱乐
-- 哈尔滨影视
-- 哈尔滨新闻综合
-- 哈尔滨都市咨询
+- 哈尔滨生活
 - 四川卫视
 - 四川科教
 - 四海钓鱼
@@ -224,6 +220,7 @@
 - 天映
 - 天津卫视
 - 宁夏卫视
+- 安多卫视
 - 安徽卫视
 - 寰宇新闻
 - 少儿
@@ -244,6 +241,7 @@
 - 教科影院
 - 文成新闻综合
 - 文物宝库
+- 新疆卫视
 - 新视觉
 - 新闻
 - 新闻咨询
@@ -283,7 +281,6 @@
 - 河南新闻
 - 河南曲艺
 - 河南梨园
-- 河南法治
 - 河南电视剧
 - 河南都市
 - 河源公共
@@ -321,6 +318,7 @@
 - 纬来精采
 - 经济生活
 - 美亚C+
+- 美亚电影
 - 耀才财经
 - 苏州
 - 苏州文化生活
@@ -454,7 +452,9 @@
 - CCTV 风云剧场
 - CCTV 风云足球
 - CCTV 风云音乐
-- CCTV15音乐
+- CCTV10科教
+- CCTV4美洲
+- CCTV5+体育
 - CCTV中学生
 - CCTV发现之旅
 - CCTV老故事
@@ -503,7 +503,7 @@
 - NEWSMAX2
 - NHK World
 - NHL Network
-- NOW NEWS
+- NOW新闻
 - NOW财经
 - NewTV 东北热剧
 - NewTV 中国功夫
@@ -559,6 +559,8 @@
 - Stadium
 - TBS
 - TVB J1
+- TVB Pearl
+- TVB Plus
 - TVBJ1
 - TVBS欢乐
 - TVBS精采
@@ -577,6 +579,7 @@
 - Universal Monsters
 - VIUTV 6
 - VIUTV1
+- Viu
 - Viu6
 - Wild Planet
 - iHOT 爱体育
@@ -755,7 +758,10 @@
 - 咪咕赛事播53
 - 哆啦A梦
 - 哈哈炫动
-- 哈尔滨生活
+- 哈尔滨娱乐
+- 哈尔滨影视
+- 哈尔滨新闻综合
+- 哈尔滨都市咨询
 - 哒啵电竞
 - 唐诡之西行
 - 喜羊羊与灰太狼
@@ -844,7 +850,6 @@
 - 新动漫
 - 新水浒传
 - 新片放映厅
-- 新疆卫视
 - 新白娘子传奇
 - 新闻综合
 - 无心法师
@@ -893,6 +898,7 @@
 - 河南国际
 - 河南戏曲
 - 河南民生
+- 河南法治
 - 泉州新闻综合
 - 法政先锋
 - 法治天地
@@ -1005,7 +1011,6 @@
 - 绵阳科技
 - 绵阳综合
 - 罪犯电影
-- 美亚电影
 - 翡翠
 - 老故事
 - 芈月传
