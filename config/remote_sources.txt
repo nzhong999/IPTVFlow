@@ -21,3 +21,6 @@ https://raw.githubusercontent.com/suxuang/myIPTV/main/ipv4.m3u
 # https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/ipv4/result.m3u
 # gntv
 https://raw.githubusercontent.com/YueChan/Live/refs/heads/main/GNTV.m3u
+
+# wkyilisha/zubo
+https://raw.githubusercontent.com/wkyilisha/zubo/e063c186e99dcc136ae435b87f9053f24061a5ad/iptv.txt
