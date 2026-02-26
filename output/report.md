@@ -1,5 +1,5 @@
 # ✅ IPTV直播源清洗报告
->**生成时间**: 2026-02-26 10:34:46<br>
+>**生成时间**: 2026-02-26 11:58:46<br>
 >**存活率**: 38.8%
 
 ## 📊 核心统计
@@ -8,13 +8,13 @@
 | 原始频道 | 1686 |
 | 唯一主机 | 374 |
 | 存活主机 | 145 |
-| 最终频道 | 338 |
+| 最终频道 | 341 |
 
 ## 🔗 源加载详情
 | 类型 | 标识 | 状态 | 频道数 | 错误信息 |
 |------|------|------|------|----------|
-| 远程 | `https://raw.githubusercontent.com/YueChan/Live/refs/heads/main/Global.m3u` | ✅ 成功 | 200 | - |
 | 远程 | `https://raw.githubusercontent.com/suxuang/myIPTV/main/ipv4.m3u` | ✅ 成功 | 2709 | - |
+| 远程 | `https://raw.githubusercontent.com/YueChan/Live/refs/heads/main/Global.m3u` | ✅ 成功 | 200 | - |
 | 远程 | `https://raw.githubusercontent.com/wkyilisha/zubo/e063c186e99dcc136ae435b87f9053f24061a5ad/iptv.txt` | ✅ 成功 | 3321 | - |
 | 远程 | `https://raw.githubusercontent.com/YueChan/Live/refs/heads/main/GNTV.m3u` | ✅ 成功 | 160 | - |
 | 远程 | `https://raw.wangqifei.eu.org/rtp` | ❌ 失败 | 0 | HTTP 404 |
@@ -22,16 +22,17 @@
 | 远程 | `https://s.wangqifei.eu.org/live` | ✅ 成功 | 1003 | - |
 
 ## 📺 分组分布
-- **📺 其他频道**: 111 个
+- **📺 其他频道**: 116 个
 - **📺 卫视频道**: 77 个
-- **🌍 国际频道**: 63 个
+- **🌍 国际频道**: 59 个
 - **🇨🇳 央视频道**: 43 个
 - **🇭🇰 港澳台频道**: 25 个
-- **🧸 儿童动画**: 10 个
-- **🎬 影视频道**: 8 个
+- **🧸 儿童动画**: 11 个
+- **🎬 影视频道**: 9 个
 - **🎓 教育频道**: 1 个
 
 ## 📋 可用频道列表
+- 1905电影网
 - 1987年春晚
 - 1988年春晚
 - 1989年春晚
@@ -45,7 +46,6 @@
 - Astro AOD
 - Astro QJ
 - BBC Earth
-- BBC News
 - Billiard
 - Bloomberg Asia
 - C Span
@@ -106,6 +106,7 @@
 - Cooking
 - Discovery
 - Disney XD
+- ESPN
 - ESPN U
 - ESPN2
 - Fashion
@@ -130,7 +131,6 @@
 - Mytime Movie
 - NBC News Now
 - NEWSMAX
-- NEWSMAX2
 - National Geographic
 - New Kmovies
 - Newsmax
@@ -148,7 +148,6 @@
 - RTM ASEAN
 - Redbull
 - SBS Drama
-- SportsGrid
 - TRT World
 - TVB Jade
 - TVB Pearl
@@ -166,8 +165,8 @@
 - VIU
 - Viu
 - ViuTV6
-- WION
 - Wild Earth
+- WionNews
 - tvg
 - 七台河新闻综合
 - 七台河民生社教
@@ -208,6 +207,10 @@
 - 厦门卫视
 - 台视新闻
 - 吉林卫视
+- 哈尔滨影视
+- 哈尔滨新闻综合
+- 哈尔滨生活
+- 哈尔滨都市咨询
 - 四川卫视
 - 四川科教
 - 四海钓鱼
@@ -292,6 +295,7 @@
 - 浙江钱江
 - 海南公共
 - 海南卫视
+- 海南少儿
 - 海南文旅
 - 海南新闻
 - 海南自贸
@@ -353,7 +357,6 @@
 - 金川新闻综合
 - 钱江都市
 - 长宁综合
-- 长影
 - 陕西卫视
 - 陕西秦腔
 - 陕西银龄
@@ -373,7 +376,6 @@
 
 ## ❌ 无有效源的频道
 - &Flix
-- 1905电影网
 - 1983年春晚
 - 1984年春晚
 - 1985年春晚
@@ -426,6 +428,7 @@
 - Autentic History
 - Autentic Travel
 - BBC
+- BBC News
 - BRTV体育休闲
 - BRTV国际
 - BRTV影视
@@ -500,7 +503,6 @@
 - ELEVEN体育1
 - ELEVEN体育2
 - ELEVEN体育3
-- ESPN
 - Eurosport
 - FIFA+
 - Fight Network
@@ -590,6 +592,7 @@
 - NBL 焦作文旅VS上海玄鸟 全场回放19:20
 - NBL 石家庄翔蓝VS贵州猛龙 解说 19:20
 - NBL 香港金牛VS安徽皖江龙 解说 19:50
+- NEWSMAX2
 - NHK World
 - NHL Network
 - NOW NEWS
@@ -644,6 +647,7 @@
 - Sony One Comedy HITS
 - Sony One Dragons' Den
 - Sony One FAVES
+- SportsGrid
 - Stadium
 - TBS
 - TVB J1
@@ -967,10 +971,6 @@
 - 哆啦A梦
 - 哈哈炫动
 - 哈尔滨娱乐
-- 哈尔滨影视
-- 哈尔滨新闻综合
-- 哈尔滨生活
-- 哈尔滨都市咨询
 - 哒啵电竞
 - 唐河TV 1
 - 唐诡之西行
@@ -1336,7 +1336,6 @@
 - 浙江好易购
 - 浙江科教影视
 - 浙江经济生活
-- 海南少儿
 - 海口1
 - 海口2
 - 海口3
@@ -1644,6 +1643,7 @@
 - 铜陵新闻综合
 - 镇平新闻综合
 - 镇江新闻综合
+- 长影
 - 长沙女性
 - 长沙政法
 - 长沙新闻
