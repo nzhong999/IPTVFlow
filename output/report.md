@@ -1,34 +1,34 @@
 # ✅ IPTV直播源清洗报告
->**生成时间**: 2026-03-04 11:53:04<br>
->**存活率**: 41.5%
+>**生成时间**: 2026-03-05 11:57:20<br>
+>**存活率**: 40.9%
 
 ## 📊 核心统计
 | 项目 | 数量 |
 |------|------|
-| 原始频道 | 1595 |
-| 唯一主机 | 364 |
+| 原始频道 | 1593 |
+| 唯一主机 | 369 |
 | 存活主机 | 151 |
-| 最终频道 | 339 |
+| 最终频道 | 331 |
 
 ## 🔗 源加载详情
 | 类型 | 标识 | 状态 | 频道数 | 错误信息 |
 |------|------|------|------|----------|
-| 远程 | `https://raw.githubusercontent.com/YueChan/Live/refs/heads/main/Global.m3u` | ✅ 成功 | 200 | - |
 | 远程 | `https://raw.githubusercontent.com/suxuang/myIPTV/main/ipv4.m3u` | ✅ 成功 | 2707 | - |
+| 远程 | `https://raw.githubusercontent.com/YueChan/Live/refs/heads/main/Global.m3u` | ✅ 成功 | 200 | - |
 | 远程 | `https://raw.githubusercontent.com/YueChan/Live/refs/heads/main/GNTV.m3u` | ✅ 成功 | 160 | - |
 | 远程 | `https://raw.githubusercontent.com/wkyilisha/zubo/e063c186e99dcc136ae435b87f9053f24061a5ad/iptv.txt` | ✅ 成功 | 3321 | - |
 | 远程 | `https://raw.wangqifei.eu.org/rtp` | ❌ 失败 | 0 | HTTP 404 |
 | 远程 | `https://iptv.cqshushu.com/index.php?s=KCSD96SXQAhNg-UhGACf4g&t=hotel&channels=1` | ❌ 失败 | 0 | HTTP 403 |
-| 远程 | `https://s.wangqifei.eu.org/live` | ✅ 成功 | 933 | - |
+| 远程 | `https://s.wangqifei.eu.org/live` | ✅ 成功 | 897 | - |
 
 ## 📺 分组分布
-- **📺 其他频道**: 113 个
-- **📺 卫视频道**: 76 个
-- **🌍 国际频道**: 64 个
-- **🇨🇳 央视频道**: 41 个
+- **📺 其他频道**: 116 个
+- **📺 卫视频道**: 74 个
+- **🌍 国际频道**: 57 个
+- **🇨🇳 央视频道**: 40 个
 - **🇭🇰 港澳台频道**: 25 个
 - **🧸 儿童动画**: 10 个
-- **🎬 影视频道**: 9 个
+- **🎬 影视频道**: 8 个
 - **🎓 教育频道**: 1 个
 
 ## 📋 可用频道列表
@@ -41,12 +41,8 @@
 - Action Hollywood
 - Al Jazeera
 - Arirang
-- Astro AEC
 - Astro AOD
-- Astro QJ
-- Astro欢喜
 - BBC Earth
-- BBC News
 - Billiard
 - Bloomberg Asia
 - C Span
@@ -59,15 +55,16 @@
 - CCTV12
 - CCTV12社会与法
 - CCTV13
+- CCTV13新闻
 - CCTV14
 - CCTV15
 - CCTV15音乐
 - CCTV16
 - CCTV17
 - CCTV2
-- CCTV2财经
 - CCTV3
 - CCTV4
+- CCTV4K真
 - CCTV5
 - CCTV5+
 - CCTV6
@@ -76,14 +73,12 @@
 - CCTV8
 - CCTV9
 - CCTV9纪录
-- CCTV🎁 第一剧场
 - CGTN
 - CGTN俄语
 - CGTN法语
 - CGTN英语
 - CGTN记录
 - CHC动作电影
-- CHC家庭影院
 - CHC影迷电影
 - CMT
 - CNA
@@ -119,7 +114,6 @@
 - Mytime Movie
 - NBC News Now
 - NEWSMAX
-- NEWSMAX2
 - National Geographic
 - New Kmovies
 - Newsmax
@@ -137,7 +131,6 @@
 - RTM ASEAN
 - Redbull
 - SBS Drama
-- SportsGrid
 - TRT World
 - TVB Jade
 - TVB Pearl
@@ -156,14 +149,15 @@
 - Trace Urban
 - VIU
 - Viu
-- WION
 - Wild Earth
+- WionNews
 - tvg
 - 七台河新闻综合
 - 七台河民生社教
 - 三沙卫视
 - 三立戏剧
 - 上海卫视
+- 世界地理
 - 东南卫视
 - 东方卫视
 - 东莞新综
@@ -202,18 +196,19 @@
 - 厦门卫视
 - 台视新闻
 - 吉林卫视
+- 哈尔滨娱乐
+- 哈尔滨影视
+- 哈尔滨新闻综合
+- 哈尔滨生活
 - 四川卫视
 - 四川科教
 - 四海钓鱼
 - 大湾区卫视
 - 大立电视
-- 天映
-- 天映经典
 - 天津卫视
 - 央视台球
-- 央视文化精品
 - 女性时尚
-- 安多卫视
+- 宁夏卫视
 - 安徽卫视
 - 寰宇新闻
 - 少儿
@@ -297,13 +292,11 @@
 - 湖北卫视
 - 湖南卫视
 - 熊猫直播
-- 爱奇艺
 - 环球旅游
 - 环球电视
 - 甘肃卫视
 - 生命电视
 - 电视剧
-- 电视指南
 - 直播中国
 - 睛彩中原
 - 移动戏曲
@@ -357,13 +350,12 @@
 - 陕西银龄
 - 雅安新闻综合
 - 青川综合
-- 青海卫视
 - 青田电视
 - 韩国EBS少儿
 - 韩国电影1
 - 韩国电影2
-- 风云剧场
 - 风云足球
+- 风云音乐
 - 香港卫视
 - 香港面包
 - 高尔夫网球
@@ -423,9 +415,13 @@
 - AXS TV Now
 - Action Movies
 - Adventure Earth
+- Astro AEC
+- Astro QJ
+- Astro欢喜
 - Autentic History
 - Autentic Travel
 - BBC
+- BBC News
 - BRTV体育休闲
 - BRTV国际
 - BRTV影视
@@ -440,12 +436,11 @@
 - CBC News
 - CBN News
 - CCTV10科教
-- CCTV13新闻
 - CCTV14少儿
 - CCTV17农业农村
 - CCTV1综合
+- CCTV2财经
 - CCTV3综艺
-- CCTV4K真
 - CCTV4中文国际
 - CCTV4欧洲
 - CCTV4美洲
@@ -467,6 +462,7 @@
 - CGTN阿语
 - CH5
 - CH8
+- CHC家庭影院
 - CHU
 - Clarity
 - Comedy
@@ -547,6 +543,7 @@
 - KBS world
 - Love Nature
 - MYTV SUPER
+- NEWSMAX2
 - NHK BSプレミアム
 - NHK World
 - NOW NEWS
@@ -600,6 +597,7 @@
 - Sony One Comedy HITS
 - Sony One Dragons' Den
 - Sony One FAVES
+- SportsGrid
 - Stadium
 - TBS
 - TVB J1
@@ -638,7 +636,6 @@
 - iHOT 爱院线
 - iHOY 爱历史
 - iNews新闻
-- mn静静nm
 - 七彩戏剧
 - 七龙珠
 - 万合出品
@@ -661,7 +658,6 @@
 - 上视东方影视
 - 上视纪实人文
 - 与凤行
-- 世界地理
 - 东平
 - 东方影视
 - 东方财经
@@ -901,10 +897,6 @@
 - 咪咕赛事播53
 - 哆啦A梦
 - 哈哈炫动
-- 哈尔滨娱乐
-- 哈尔滨影视
-- 哈尔滨新闻综合
-- 哈尔滨生活
 - 哈尔滨都市咨询
 - 哒啵电竞
 - 唐河TV 1
@@ -935,9 +927,12 @@
 - 大秦赋
 - 大象新闻
 - 天元围棋
+- 天映
+- 天映经典
 - 天龙八部
 - 太湖新闻综合
 - 央广购物
+- 央视文化精品
 - 央视网CCTV10
 - 央视网CCTV11
 - 央视网CCTV12
@@ -953,7 +948,6 @@
 - 孟津综合综合
 - 宁国新闻综合
 - 宁夏公共
-- 宁夏卫视
 - 宁夏少儿
 - 宁夏广播电视台文旅
 - 宁夏广播电视台经济
@@ -1360,6 +1354,7 @@
 - 熊猫频道9
 - 爱上
 - 爱体育
+- 爱奇艺
 - 爱情公寓
 - 父母爱情
 - 牟平新闻
@@ -1384,6 +1379,7 @@
 - 甘肃都市
 - 生态环境
 - 生活时尚
+- 电视指南
 - 界首
 - 番禺综合
 - 番薯
@@ -1508,6 +1504,7 @@
 - 谈判专家
 - 谍战电影
 - 贝爷求生
+- 贝爷贰厅
 - 贝贝影院
 - 财富天下
 - 购物
@@ -1588,6 +1585,7 @@
 - 青岛6
 - 青州
 - 青州文化旅游
+- 青海卫视
 - 青神综合
 - 靖天电影
 - 靖洋戏剧
@@ -1595,7 +1593,7 @@
 - 非凡新闻
 - 韶关综合
 - 项城电视
-- 风云音乐
+- 风云剧场
 - 马鞍山新闻综合
 - 马鞍山科教生活
 - 鬼吹灯之云南虫谷
