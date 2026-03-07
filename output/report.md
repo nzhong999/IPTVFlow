@@ -1,34 +1,34 @@
 # ✅ IPTV直播源清洗报告
->**生成时间**: 2026-03-05 11:57:20<br>
->**存活率**: 40.9%
+>**生成时间**: 2026-03-07 11:45:33<br>
+>**存活率**: 41.3%
 
 ## 📊 核心统计
 | 项目 | 数量 |
 |------|------|
-| 原始频道 | 1593 |
-| 唯一主机 | 369 |
-| 存活主机 | 151 |
-| 最终频道 | 331 |
+| 原始频道 | 1594 |
+| 唯一主机 | 368 |
+| 存活主机 | 152 |
+| 最终频道 | 327 |
 
 ## 🔗 源加载详情
 | 类型 | 标识 | 状态 | 频道数 | 错误信息 |
 |------|------|------|------|----------|
-| 远程 | `https://raw.githubusercontent.com/suxuang/myIPTV/main/ipv4.m3u` | ✅ 成功 | 2707 | - |
 | 远程 | `https://raw.githubusercontent.com/YueChan/Live/refs/heads/main/Global.m3u` | ✅ 成功 | 200 | - |
 | 远程 | `https://raw.githubusercontent.com/YueChan/Live/refs/heads/main/GNTV.m3u` | ✅ 成功 | 160 | - |
+| 远程 | `https://raw.githubusercontent.com/suxuang/myIPTV/main/ipv4.m3u` | ✅ 成功 | 2707 | - |
 | 远程 | `https://raw.githubusercontent.com/wkyilisha/zubo/e063c186e99dcc136ae435b87f9053f24061a5ad/iptv.txt` | ✅ 成功 | 3321 | - |
 | 远程 | `https://raw.wangqifei.eu.org/rtp` | ❌ 失败 | 0 | HTTP 404 |
 | 远程 | `https://iptv.cqshushu.com/index.php?s=KCSD96SXQAhNg-UhGACf4g&t=hotel&channels=1` | ❌ 失败 | 0 | HTTP 403 |
-| 远程 | `https://s.wangqifei.eu.org/live` | ✅ 成功 | 897 | - |
+| 远程 | `https://s.wangqifei.eu.org/live` | ✅ 成功 | 1045 | - |
 
 ## 📺 分组分布
-- **📺 其他频道**: 116 个
-- **📺 卫视频道**: 74 个
-- **🌍 国际频道**: 57 个
+- **📺 其他频道**: 112 个
+- **📺 卫视频道**: 76 个
+- **🌍 国际频道**: 54 个
 - **🇨🇳 央视频道**: 40 个
 - **🇭🇰 港澳台频道**: 25 个
 - **🧸 儿童动画**: 10 个
-- **🎬 影视频道**: 8 个
+- **🎬 影视频道**: 9 个
 - **🎓 教育频道**: 1 个
 
 ## 📋 可用频道列表
@@ -37,23 +37,21 @@
 - 1988年春晚
 - 1989年春晚
 - 2024年春晚
-- ABC
+- ASTRO AOD
 - Action Hollywood
 - Al Jazeera
 - Arirang
 - Astro AOD
 - BBC Earth
+- BBC News
 - Billiard
 - Bloomberg Asia
-- C Span
-- CBS
 - CCTV
 - CCTV1
 - CCTV10
 - CCTV11
 - CCTV11戏曲
 - CCTV12
-- CCTV12社会与法
 - CCTV13
 - CCTV13新闻
 - CCTV14
@@ -62,9 +60,10 @@
 - CCTV16
 - CCTV17
 - CCTV2
+- CCTV2财经
 - CCTV3
 - CCTV4
-- CCTV4K真
+- CCTV4美洲
 - CCTV5
 - CCTV5+
 - CCTV6
@@ -72,13 +71,14 @@
 - CCTV7国防军事
 - CCTV8
 - CCTV9
-- CCTV9纪录
+- CCTV🎁 电视指南
 - CGTN
 - CGTN俄语
 - CGTN法语
 - CGTN英语
 - CGTN记录
 - CHC动作电影
+- CHC家庭影院
 - CHC影迷电影
 - CMT
 - CNA
@@ -91,19 +91,13 @@
 - Disney XD
 - ESPN
 - ESPN U
-- ESPN2
 - Fashion
-- Fox
-- Fox News
-- Fox Sports 1
-- Fox Sports 2
 - GB News
 - Global News
 - HBO
 - HBO 2
 - History Hit
 - HollyWire
-- ION
 - ION Plus
 - Kartoon
 - LG 1
@@ -114,6 +108,7 @@
 - Mytime Movie
 - NBC News Now
 - NEWSMAX
+- NEWSMAX2
 - National Geographic
 - New Kmovies
 - Newsmax
@@ -131,6 +126,7 @@
 - RTM ASEAN
 - Redbull
 - SBS Drama
+- SportsGrid
 - TRT World
 - TVB Jade
 - TVB Pearl
@@ -138,7 +134,6 @@
 - TVBS亚洲
 - TVBS新闻
 - TVB无线新闻
-- TVB无线星河
 - TVB明珠
 - TVB星河
 - Tastemade
@@ -148,9 +143,8 @@
 - Trace Sports
 - Trace Urban
 - VIU
-- Viu
+- WION
 - Wild Earth
-- WionNews
 - tvg
 - 七台河新闻综合
 - 七台河民生社教
@@ -196,19 +190,18 @@
 - 厦门卫视
 - 台视新闻
 - 吉林卫视
-- 哈尔滨娱乐
 - 哈尔滨影视
-- 哈尔滨新闻综合
-- 哈尔滨生活
 - 四川卫视
 - 四川科教
 - 四海钓鱼
 - 大湾区卫视
 - 大立电视
+- 天映经典
 - 天津卫视
 - 央视台球
 - 女性时尚
 - 宁夏卫视
+- 安多卫视
 - 安徽卫视
 - 寰宇新闻
 - 少儿
@@ -233,6 +226,7 @@
 - 新视觉
 - 新闻
 - 新闻咨询
+- 无线新闻
 - 旺苍新闻综合
 - 昌黎综合
 - 星空卫视
@@ -297,14 +291,17 @@
 - 甘肃卫视
 - 生命电视
 - 电视剧
+- 电视指南
 - 直播中国
 - 睛彩中原
+- 福建东南卫视
 - 移动戏曲
 - 第一剧场
 - 纪实科教
 - 纬来精采
 - 经济生活
 - 美亚C+
+- 美亚电影
 - 耀才财经
 - 苏州
 - 苏州文化生活
@@ -350,13 +347,12 @@
 - 陕西银龄
 - 雅安新闻综合
 - 青川综合
+- 青海卫视
 - 青田电视
 - 韩国EBS少儿
 - 韩国电影1
 - 韩国电影2
-- 风云足球
-- 风云音乐
-- 香港卫视
+- 风云剧场
 - 香港面包
 - 高尔夫网球
 - 黄龙
@@ -406,10 +402,10 @@
 - 3030相声小品
 - 4K
 - 4K宣传
+- ABC
 - ABC News Live
 - AMC电影
 - ASTRO AEC
-- ASTRO AOD
 - ASTRO QJ
 - ASTRO欢喜
 - AXS TV Now
@@ -421,7 +417,6 @@
 - Autentic History
 - Autentic Travel
 - BBC
-- BBC News
 - BRTV体育休闲
 - BRTV国际
 - BRTV影视
@@ -432,22 +427,25 @@
 - Bloomberg
 - Bloomberg Originals
 - BritAsia
+- C Span
 - CAT电影
 - CBC News
 - CBN News
+- CBS
 - CCTV10科教
+- CCTV12社会与法
 - CCTV14少儿
 - CCTV17农业农村
 - CCTV1综合
-- CCTV2财经
 - CCTV3综艺
+- CCTV4K真
 - CCTV4中文国际
 - CCTV4欧洲
-- CCTV4美洲
 - CCTV5+体育赛事
 - CCTV5体育
 - CCTV6电影
 - CCTV8电视剧
+- CCTV9纪录
 - CCTV中学生
 - CCTV发现之旅
 - CCTV老故事
@@ -462,7 +460,6 @@
 - CGTN阿语
 - CH5
 - CH8
-- CHC家庭影院
 - CHU
 - Clarity
 - Comedy
@@ -473,16 +470,22 @@
 - ELEVEN体育1
 - ELEVEN体育2
 - ELEVEN体育3
+- ESPN2
 - Eurosport
 - FIFA+
 - Fight Network
+- Fox
 - Fox LiveNow
+- Fox News
+- Fox Sports 1
+- Fox Sports 2
 - GoUSA
 - Great British Menu
 - HOY
 - HOY77
 - HOY78
 - HOY资讯
+- ION
 - IPTV10野外
 - IPTV11戏曲
 - IPTV12法治
@@ -543,10 +546,9 @@
 - KBS world
 - Love Nature
 - MYTV SUPER
-- NEWSMAX2
 - NHK BSプレミアム
 - NHK World
-- NOW NEWS
+- NOW新闻
 - NOW财经
 - NewTV 东北热剧
 - NewTV 中国功夫
@@ -597,7 +599,6 @@
 - Sony One Comedy HITS
 - Sony One Dragons' Den
 - Sony One FAVES
-- SportsGrid
 - Stadium
 - TBS
 - TVB J1
@@ -606,6 +607,7 @@
 - TVBS精采
 - TVB娱乐新闻
 - TVB戏剧
+- TVB无线星河
 - TVB武侠
 - TVB生活
 - Talk
@@ -617,6 +619,7 @@
 - Universal Monsters
 - VIUTV 6
 - VIUTV1
+- Viu
 - Viu6
 - Wild Planet
 - YMG新闻
@@ -636,6 +639,7 @@
 - iHOT 爱院线
 - iHOY 爱历史
 - iNews新闻
+- mn静静nm
 - 七彩戏剧
 - 七龙珠
 - 万合出品
@@ -736,7 +740,6 @@
 - 信阳新闻综合
 - 倚天屠龙记
 - 健康河南融媒
-- 傲娇的超级赛亚人
 - 光山
 - 光影
 - 兖州新闻
@@ -897,6 +900,9 @@
 - 咪咕赛事播53
 - 哆啦A梦
 - 哈哈炫动
+- 哈尔滨娱乐
+- 哈尔滨新闻综合
+- 哈尔滨生活
 - 哈尔滨都市咨询
 - 哒啵电竞
 - 唐河TV 1
@@ -928,7 +934,6 @@
 - 大象新闻
 - 天元围棋
 - 天映
-- 天映经典
 - 天龙八部
 - 太湖新闻综合
 - 央广购物
@@ -1106,7 +1111,6 @@
 - 无信号
 - 无心法师
 - 无棣
-- 无线新闻
 - 无节目
 - 日本全天新闻
 - 日本女子摔角
@@ -1118,11 +1122,9 @@
 - 昌邑
 - 昌飞航空
 - 星光影视
-- 星爷房✔原
 - 昭化综合
 - 曲阜
 - 最强综艺趴
-- 有线新闻
 - 未知节目
 - 未识别
 - 末日电影合集
@@ -1379,7 +1381,6 @@
 - 甘肃都市
 - 生态环境
 - 生活时尚
-- 电视指南
 - 界首
 - 番禺综合
 - 番薯
@@ -1450,7 +1451,6 @@
 - 综合H
 - 网神影厅
 - 罪犯电影
-- 美亚电影
 - 翡翠
 - 老故事
 - 聊城
@@ -1585,7 +1585,6 @@
 - 青岛6
 - 青州
 - 青州文化旅游
-- 青海卫视
 - 青神综合
 - 靖天电影
 - 靖洋戏剧
@@ -1593,7 +1592,9 @@
 - 非凡新闻
 - 韶关综合
 - 项城电视
-- 风云剧场
+- 风云足球
+- 风云音乐
+- 香港卫视
 - 马鞍山新闻综合
 - 马鞍山科教生活
 - 鬼吹灯之云南虫谷
