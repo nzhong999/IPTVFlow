@@ -1,5 +1,3 @@
-name: 📺 daily-IPTVFlowList-refresh
-
 on:
   schedule:
     - cron: '15 1 * * *'  # UTC 01:15 → 北京时间 09:15
@@ -31,7 +29,8 @@ jobs:
       # ✅ 安装基础依赖
       - name: 📦 Install Python dependencies
         run: |
-          pip install requests
+          pip install --upgrade pip
+          pip install aiohttp m3u8 requests
 
       # ✅ 【可选】安装 FFmpeg（用于深度验证）
       - name: 🎞️ Install FFmpeg (for stream validation)
@@ -40,7 +39,7 @@ jobs:
       # ✅ 【可选】安装 Tesseract + OCR 依赖（用于画面检测）
       - name: 🔍 Install Tesseract OCR (optional, for soft-error detection)
         run: |
-          sudo apt-get install -y tesseract-ocr libtesseract-dev
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-chi-sim libtesseract-dev
           pip install pytesseract opencv-python pillow
 
       # ✅ 关键：在正确目录下运行脚本
