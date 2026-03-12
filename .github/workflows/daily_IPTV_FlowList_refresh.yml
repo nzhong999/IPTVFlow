@@ -46,8 +46,9 @@ jobs:
       # ✅ 关键：在正确目录下运行脚本
       - name: 🧹 Run daily-IPTVFlowList-refresh 📺
         run: |
-          python iptvflow.py  # 👈 确保文件名匹配！
+          # python iptvflow.py  # 👈 确保文件名匹配！
           # python iptvflowLite.py # 运行精简版本（无FFMEPG\OCR)提升速度
+          pythoniptv_cleaner_v2_strict.py
         env:
           # 如果你脚本里启用了 BARK 推送，保留；否则可删。默认启用
           BARK_DEVICE_KEY: ${{ secrets.BARK_DEVICE_KEY }}
