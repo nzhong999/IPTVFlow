@@ -47,7 +47,7 @@ jobs:
         run: |
           # python iptvflow.py  # 👈 确保文件名匹配！
           # python iptvflowLite.py # 运行精简版本（无FFMEPG\OCR)提升速度
-          python iptv_cleaner_v2_strict.py
+          python iptv_cleaner_v2_strict.py  --debug
         env:
           # 如果你脚本里启用了 BARK 推送，保留；否则可删。默认启用
           BARK_DEVICE_KEY: ${{ secrets.BARK_DEVICE_KEY }}
