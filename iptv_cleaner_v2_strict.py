@@ -625,12 +625,12 @@ async def run_host_level_speed_test(channels: List[Dict[str, Any]], session: Cli
         }
         
         # 将该主机结果应用到所有频道（只更新测速相关字段）
-            for ch in ch_list:
-                ch['alive'] = result['alive']
-                ch['delay'] = result['delay']
-                ch['speed'] = result['speed']
-                ch['resolution'] = result.get('resolution')
-                ch['reason'] = result.get('reason')
+        for ch in ch_list:
+            ch['alive'] = result['alive']
+            ch['delay'] = result['delay']
+            ch['speed'] = result['speed']
+            ch['resolution'] = result.get('resolution')
+            ch['reason'] = result.get('reason')
             
     return host_results, channels
 
