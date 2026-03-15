@@ -82,8 +82,11 @@ class Config:
     TIMEOUT: int = 10                   # 总超时时间 (秒)
     CONNECT_TIMEOUT: int = 5            # 连接超时
     READ_TIMEOUT: int = 8               # 读取超时
-    MAX_CONCURRENT: int = 50            # 最大并发数 (Semaphore 限制)
+    MAX_CONCURRENT: int = 100            # 最大并发数 (Semaphore 限制)
     
+    # 新增：是否使用主机级测速（False=每个URL独立测速，True=同主机复用测速结果）
+    USE_HOST_LEVEL_SPEED: bool = True
+
     # 滑动窗口稳定性算法参数
     MIN_MEASURE_TIME: float = 1.0       # 最小测速时长 (秒)，低于此时长不判定稳定
     STABILITY_WINDOW: int = 4           # 滑动窗口大小 (采样点数)
@@ -314,6 +317,7 @@ def is_valid_hls_content(text: str) -> bool:
     return txt.startswith('#EXTM3U') and any(k in txt for k in ["#EXTINF", "#EXT-X-STREAM-INF"])
 
 # ================== 核心测速逻辑 (严格复刻 Guovin/iptv-api) ==================
+
 
 async def get_speed_with_download(url: str, session: ClientSession, headers: dict, timeout: int) -> Dict[str, Any]:
     """
@@ -575,6 +579,62 @@ async def test_channel_speed(channel_info: Dict[str, Any], session: ClientSessio
         
         return result
 
+
+async def run_host_level_speed_test(channels: List[Dict[str, Any]], session: ClientSession, semaphore: asyncio.Semaphore) -> Tuple[Dict[str, Dict[str, Any]], List[Dict[str, Any]]]:
+    """
+    主机级测速：
+    - 对每个主机选取代表性 URL（优先 .m3u8）进行完整测速
+    - 如果代表性 URL 失败，尝试最多 3 个备选 URL
+    - 返回主机质量字典，以及填充了测速结果的频道列表
+    """
+    # 构建 host -> 该主机所有 URL 的映射
+    host_to_urls: DefaultDict[str, List[Dict[str, Any]]] = defaultdict(list)
+    for ch in channels:
+        host = get_host_key(ch['url'])
+        if host:
+            host_to_urls[host].append(ch)
+    
+    host_results = {}
+    # 对每个主机测速
+    for host, ch_list in host_to_urls.items():
+        # 收集该主机所有 URL
+        urls = [ch['url'] for ch in ch_list]
+        
+        # 选择代表性 URL（优先 .m3u8）
+        rep_url = next((u for u in urls if u.endswith(Config.HLS_EXTENSIONS)), urls[0])
+        
+        # 对代表性 URL 进行完整测速
+        result = await test_channel_speed({"url": rep_url, "name": "rep"}, session, semaphore)
+        
+        # 如果失败，尝试其他备选（最多 3 个）
+        if not result['alive']:
+            candidates = [u for u in urls if u != rep_url][:3]
+            for cand in candidates:
+                cand_result = await test_channel_speed({"url": cand, "name": "cand"}, session, semaphore)
+                if cand_result['alive']:
+                    result = cand_result
+                    break
+        
+        # 保存主机结果
+        host_results[host] = {
+            'alive': result['alive'],
+            'delay': result['delay'],
+            'speed': result['speed'],
+            'resolution': result['resolution'],
+            'representative_url': rep_url
+        }
+        
+        # 将该主机结果应用到所有频道（只更新测速相关字段）
+            for ch in ch_list:
+                ch['alive'] = result['alive']
+                ch['delay'] = result['delay']
+                ch['speed'] = result['speed']
+                ch['resolution'] = result.get('resolution')
+                ch['reason'] = result.get('reason')
+            
+    return host_results, channels
+
+
 def filter_and_sort_results(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
     【质量评估算法】过滤和排序结果
@@ -786,12 +846,16 @@ async def run_speed_test_all(channels: List[Dict[str, Any]]) -> List[Dict[str, A
 
 def generate_outputs(final_channels: List[Dict[str, Any]], stats: Dict[str, Any], source_details: List[Dict[str, Any]]):
     """生成输出文件和报告"""
-    # 分组
+
     group_to_channels: DefaultDict[str, List[Dict[str, Any]]] = defaultdict(list)
     for item in final_channels:
         g = guess_group(item['name'])
         group_to_channels[g].append(item)
-    
+
+    # 在每个分组内按频道名称排序（默认字符串排序）
+    for chs in group_to_channels.values():
+        chs.sort(key=lambda x: x['name'])   # <-- 新增排序
+
     # 排序分组
     ordered_groups = []
     for g_name in Config.GROUP_OUTPUT_ORDER:
@@ -868,7 +932,19 @@ def main():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
-        valid_results = loop.run_until_complete(run_speed_test_all(filtered))
+        if Config.USE_HOST_LEVEL_SPEED:
+            logging.info("⚡ 使用主机级测速模式...")
+            async def host_task():
+                connector = TCPConnector(ssl=False, limit=Config.MAX_CONCURRENT)
+                async with ClientSession(connector=connector, trust_env=True) as session:
+                    semaphore = asyncio.Semaphore(Config.MAX_CONCURRENT)
+                    _, filtered_with_speed = await run_host_level_speed_test(filtered, session, semaphore)
+                return filtered_with_speed
+            filtered_with_speed = loop.run_until_complete(host_task())
+            valid_results = [ch for ch in filtered_with_speed if ch.get('alive')]
+        else:
+            logging.info("⚡ 使用独立 URL 测速模式...")
+            valid_results = loop.run_until_complete(run_speed_test_all(filtered))
     finally:
         loop.close()
         
