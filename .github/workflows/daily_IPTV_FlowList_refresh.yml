@@ -6,7 +6,7 @@ on:
 jobs:
   update-iptv:
     runs-on: ubuntu-latest
-    timeout-minutes: 50  # 增加至 20 分钟（OCR 可能较慢）
+    # timeout-minutes: 50  # 增加至 20 分钟（OCR 可能较慢）
 
     steps:
       - name: 🛎️ Checkout repository
