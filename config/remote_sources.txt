@@ -12,13 +12,14 @@ https://raw.githubusercontent.com/YueChan/Live/refs/heads/main/Global.m3u
 https://raw.wangqifei.eu.org/rtp
 https://s.wangqifei.eu.org/live
 
-# 洛阳酒店源
-https://iptv.cqshushu.com/index.php?s=KCSD96SXQAhNg-UhGACf4g&t=hotel&channels=1
+# TVCrazy
+https://raw.githubusercontent.com/fqw000/TVCrazy/refs/heads/main/output/itvlist.m3u
+
 
 # myiptv
 https://raw.githubusercontent.com/suxuang/myIPTV/main/ipv4.m3u
 # iptv-api
-# https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/ipv4/result.m3u
+https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/ipv4/result.m3u
 # gntv
 https://raw.githubusercontent.com/YueChan/Live/refs/heads/main/GNTV.m3u
 
