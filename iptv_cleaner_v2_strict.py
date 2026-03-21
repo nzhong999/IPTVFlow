@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-IPTV 直播源智能清洗与验证系统（v2.0 Strict - Guovin Logic Edition + 频道去重 + Bark 报告推送）
+IPTV 直播源智能清洗与验证系统（v2.0 Strict - Guovin Logic Edition + 频道去重 + Bark 报告 + 预定义频道顺序）
 
 【核心逻辑说明】
 本脚本严格遵循 Guovin/iptv-api 的核心业务逻辑，同时保留了原有的 OCR 检测和分组功能。
@@ -19,7 +19,7 @@ IPTV 直播源智能清洗与验证系统（v2.0 Strict - Guovin Logic Edition +
    - M3U8 分片测速：解析播放列表，下载前 5 个 TS 分片计算真实速度
    - 滑动窗口稳定性算法：连续采样速度波动 < 15% 才判定为有效速度
    - FFmpeg 降级探测：HTTP 测速失败时，调用 ffprobe 获取分辨率/编码
-   - OCR 软错误检测：识别“登录墙”、“区域限制”等无效画面
+   - OCR 软错误检测：识别"登录墙"、"区域限制"等无效画面
 
 3. 质量评估 (filter_and_sort_results):
    - 动态阈值过滤：基于分辨率 - 速率映射表 (1080P 需 > 1.5MB/s)
@@ -28,7 +28,11 @@ IPTV 直播源智能清洗与验证系统（v2.0 Strict - Guovin Logic Edition +
 4. 频道去重 (新增)：
    - 按标准化名称分组，每组保留第一个（排序后最优）源
 
-5. 架构:
+5. 频道排序 (新增)：
+   - 支持通过 config/channel_order.json 预定义每个分组内频道的顺序
+   - 未定义的频道按自然排序（数字优先）追加到组内末尾
+
+6. 架构:
    - 完全异步 (AsyncIO + Aiohttp)，支持高并发测速
 """
 
@@ -72,6 +76,7 @@ class Config:
     OUTPUT_FILE: str = "output/live.m3u"                        # 输出 M3U
     REPORT_FILE: str = "output/report.md"                       # 清洗报告
     BARK_DEVICE_KEY: str = ""                                   # Bark 通知密钥
+    CHANNEL_ORDER_FILE: str = "config/channel_order.json"       # 频道顺序配置文件
     
     DEBUG_FILES: List[str] = [
         "debug_1_merged_raw.m3u",
@@ -115,7 +120,7 @@ class Config:
     
     # --- 频道分组规则 (正则匹配) ---
     GROUP_RULES: List[Tuple[str, str]] = [
-        (r'(CCTV[-]?14|哈哈炫动|卡酷|宝宝|幼教|贝瓦|巧虎|新科动漫|小猪佩奇|汪汪队|海底小纵队|米老鼠|迪士尼|熊出没|猫和老鼠|哆啦A梦|喜羊羊|青少|儿童|动画|动漫|少儿|卡通|金鹰|cartoon|disney|哈哈炫动)', "🧸 儿童动画"),
+        (r'(CCTV[-]?14|哈哈炫动|卡酷|宝宝|幼教|贝瓦|巧虎|新科动漫|小猪佩奇|汪汪队|海底小纵队|米老鼠|迪士尼|熊出没|猫和老鼠|哆啦A梦|喜羊羊|青少|儿童|动画|动漫|少儿|卡通|金鹰|disney|cartoon|nickelodeon|kids|kika|cbbc|哈哈炫动)', "🧸 儿童动画"),
         (r'(央视|CCTV[0-9]*[高清]?|CGTN|CCTV|风云音乐|第一剧场|怀旧剧场|女性时尚|风云足球|世界地理|兵器科技|电视指南)', "🇨🇳 央视频道"),
         (r'(卫视|湖南|浙江|江苏|北京|广东|深圳|东方|安徽|山东|河南|湖北|四川|辽宁|东南|天津|四川|内蒙古|云南)', "📺 卫视频道"),
         (r'(翡翠|明珠|凤凰|鳳凰东森|莲花|AMC|龙华|澳亚|港台|寰宇|TVB|华语|中天|东森|年代|民视|三立|星空|民视|台视|美亚|美亞|千禧|无线|無線|VIUTV|HOY|RTHK|Now|靖天|星卫|香港|澳门|台湾)', "🇭🇰 港澳台频道"),
@@ -138,37 +143,83 @@ class Config:
 CHANNEL_ALIAS_MAP: Dict[str, str] = {
     alias: std
     for std, aliases in {
-        "CCTV1": ["CCTV-1", "CCTV-1 HD", "CCTV1 HD", "CCTV-1综合"],
-        "CCTV2": ["CCTV-2", "CCTV-2 HD", "CCTV2 HD", "CCTV-2财经"],
-        "CCTV3": ["CCTV-3", "CCTV-3 HD", "CCTV3 HD", "CCTV-3综艺"],
-        "CCTV4": ["CCTV-4", "CCTV-4 HD", "CCTV4 HD", "CCTV-4中文国际"],
-        "CCTV4欧洲": ["CCTV-4欧洲", "CCTV4欧洲 HD", "CCTV-4 欧洲", "CCTV-4中文国际欧洲"],
-        "CCTV4美洲": ["CCTV-4美洲", "CCTV-4北美", "CCTV4美洲 HD", "CCTV-4 美洲", "CCTV-4中文国际美洲"],
-        "CCTV5": ["CCTV-5", "CCTV-5 HD", "CCTV5 HD", "CCTV-5体育"],
-        "CCTV5+": ["CCTV-5+", "CCTV-5+ HD", "CCTV5+ HD", "CCTV-5+体育赛事"],
-        "CCTV6": ["CCTV-6", "CCTV-6 HD", "CCTV6 HD", "CCTV-6电影"],
-        "CCTV7": ["CCTV-7", "CCTV-7 HD", "CCTV7 HD", "CCTV-7国防军事"],
-        "CCTV8": ["CCTV-8", "CCTV-8 HD", "CCTV8 HD", "CCTV-8电视剧"],
-        "CCTV9": ["CCTV-9", "CCTV-9 HD", "CCTV9 HD", "CCTV-9纪录"],
-        "CCTV10": ["CCTV-10", "CCTV-10 HD", "CCTV10 HD", "CCTV-10科教"],
-        "CCTV11": ["CCTV-11", "CCTV-11 HD", "CCTV11 HD", "CCTV-11戏曲"],
-        "CCTV12": ["CCTV-12", "CCTV-12 HD", "CCTV12 HD", "CCTV-12社会与法"],
-        "CCTV13": ["CCTV-13", "CCTV-13 HD", "CCTV13 HD", "CCTV-13新闻"],
-        "CCTV14": ["CCTV-14", "CCTV-14 HD", "CCTV14 HD", "CCTV-14少儿"],
-        "CCTV15": ["CCTV-15", "CCTV-15 HD", "CCTV15 HD", "CCTV-15音乐"],
-        "CCTV16": ["CCTV-16", "CCTV-16 HD", "CCTV-16 4K", "CCTV-16奥林匹克"],
-        "CCTV17": ["CCTV-17", "CCTV-17 HD", "CCTV17 HD", "CCTV-17农业农村"],
-        "CCTV4K": ["CCTV4K超高清", "CCTV-4K超高清", "CCTV 4K"],
-        "CCTV8K": ["CCTV8K超高清", "CCTV-8K超高清", "CCTV 8K"],
-        "湖南卫视": ["湖南卫视4K"],
-        "北京卫视": ["北京卫视4K"],
-        "东方卫视": ["东方卫视4K"],
-        "广东卫视": ["广东卫视4K"],
-        "深圳卫视": ["深圳卫视4K"],
-        "TVB Jade": ["翡翠台"],
-        "TVB Pearl": ["明珠台"],
-        "凤凰卫视中文台": ["凤凰中文", "凤凰中文台", "凤凰卫视中文"],
-        "凤凰卫视资讯台": ["凤凰资讯", "凤凰资讯台", "凤凰咨询"],
+        "CCTV-1 综合": ["CCTV-1", "CCTV-1HD", "CCTV-1SD",  ",CCTV-1高清",  "CCTV-1 HD", "CCTV-1 SD",  ",CCTV-1 高清", "CCTV1" , "CCTV1高清"，"CCTV1SD", "CCTV1HD", "CCTV1 高清"，"CCTV1 SD", "CCTV1 HD", "CCTV1综合", , "CCTV1综合高清"，"CCTV1综合SD", "CCTV1综合HD", "CCTV1综合 高清"，"CCTV1综合 SD", "CCTV1综合 HD", "CCTV-1 综合 高清"，, "CCTV-1 综合 HD", "CCTV-1 综合 SD" ],
+        "CCTV-2 财经": ["CCTV-2", "CCTV-2HD", "CCTV-2SD",  ",CCTV-2高清",  "CCTV-2 HD", "CCTV-2 SD",  ",CCTV-2 高清", "CCTV2" , "CCTV2高清"，"CCTV2SD", "CCTV2HD", "CCTV2 高清"，"CCTV2 SD", "CCTV2 HD", "CCTV2财经", , "CCTV2财经高清"，"CCTV2财经SD", "CCTV2财经HD", "CCTV2财经 高清"，"CCTV2财经 SD", "CCTV2财经 HD", "CCTV-2 财经 高清"，, "CCTV-2 财经 HD", "CCTV-2 财经 SD" ],
+        "CCTV-3 综艺": ["CCTV-3", "CCTV-3HD", "CCTV-3SD",  ",CCTV-3高清",  "CCTV-3 HD", "CCTV-3 SD",  ",CCTV-3 高清", "CCTV3" , "CCTV3高清"，"CCTV3SD", "CCTV3HD", "CCTV3 高清"，"CCTV3 SD", "CCTV3 HD", "CCTV3综艺", , "CCTV3综艺高清"，"CCTV3综艺SD", "CCTV3综艺HD", "CCTV3综艺 高清"，"CCTV3综艺 SD", "CCTV3综艺 HD", "CCTV-3 综艺 高清"，, "CCTV-3 综艺 HD", "CCTV-3 综艺 SD" ],
+        "CCTV-4 中文国际": ["CCTV-4", "CCTV-4HD", "CCTV-4SD",  ",CCTV-4高清",  "CCTV-4 HD", "CCTV-4 SD",  ",CCTV-4 高清", "CCTV4" , "CCTV4高清"，"CCTV4SD", "CCTV4HD", "CCTV4 高清"，"CCTV4 SD", "CCTV4 HD", "CCTV4中文国际", , "CCTV4中文国际高清"，"CCTV4中文国际SD", "CCTV4中文国际HD", "CCTV4中文国际 高清"，"CCTV4中文国际 SD", "CCTV4中文国际 HD", "CCTV-4 中文国际 高清"，, "CCTV-4 中文国际 HD", "CCTV-4 中文国际 SD" ],
+        "CCTV-4 美洲": ["CCTV-4", "CCTV-4HD", "CCTV-4SD",  ",CCTV-4高清",  "CCTV-4 HD", "CCTV-4 SD",  ",CCTV-4 高清", "CCTV4" , "CCTV4高清"，"CCTV4SD", "CCTV4HD", "CCTV4 高清"，"CCTV4 SD", "CCTV4 HD", "CCTV4美洲", , "CCTV4美洲高清"，"CCTV4美洲SD", "CCTV4美洲HD", "CCTV4美洲 高清"，"CCTV4美洲 SD", "CCTV4美洲 HD", "CCTV-4 美洲 高清"，, "CCTV-4 美洲 HD", "CCTV-4 美洲 SD" ],
+        "CCTV-4 欧洲": ["CCTV-4", "CCTV-4HD", "CCTV-4SD",  ",CCTV-4高清",  "CCTV-4 HD", "CCTV-4 SD",  ",CCTV-4 高清", "CCTV4" , "CCTV4高清"，"CCTV4SD", "CCTV4HD", "CCTV4 高清"，"CCTV4 SD", "CCTV4 HD", "CCTV4欧洲", , "CCTV4欧洲高清"，"CCTV4欧洲SD", "CCTV4欧洲HD", "CCTV4欧洲 高清"，"CCTV4欧洲 SD", "CCTV4欧洲 HD", "CCTV-4 欧洲 高清"，, "CCTV-4 欧洲 HD", "CCTV-4 欧洲 SD" ],
+        "CCTV-5 体育": ["CCTV-5", "CCTV-5HD", "CCTV-5SD",  ",CCTV-5高清",  "CCTV-5 HD", "CCTV-5 SD",  ",CCTV-5 高清", "CCTV5" , "CCTV5高清"，"CCTV5SD", "CCTV5HD", "CCTV5 高清"，"CCTV5 SD", "CCTV5 HD", "CCTV5体育", , "CCTV5体育高清"，"CCTV5体育SD", "CCTV5体育HD", "CCTV5体育 高清"，"CCTV5体育 SD", "CCTV5体育 HD", "CCTV-5 体育 高清"，, "CCTV-5 体育 HD", "CCTV-5 体育 SD" ],
+        "CCTV-5+ 体育赛事": ["CCTV-5+", "CCTV-5+HD", "CCTV-5+SD",  ",CCTV-5+高清",  "CCTV-5+ HD", "CCTV-5+ SD",  ",CCTV-5+ 高清", "CCTV5+" , "CCTV5+高清"，"CCTV5+SD", "CCTV5+HD", "CCTV5+ 高清"，"CCTV5+ SD", "CCTV5+ HD", "CCTV5+体育赛事", , "CCTV5+体育赛事高清"，"CCTV5+体育赛事SD", "CCTV5+体育赛事HD", "CCTV5+体育赛事 高清"，"CCTV5+体育赛事 SD", "CCTV5+体育赛事 HD", "CCTV-5+ 体育赛事 高清"，, "CCTV-5+ 体育赛事 HD", "CCTV-5+ 体育赛事 SD" ],
+        "CCTV-6 电影": ["CCTV-6", "CCTV-6HD", "CCTV-6SD",  ",CCTV-6高清",  "CCTV-6 HD", "CCTV-6 SD",  ",CCTV-6 高清", "CCTV6" , "CCTV6高清"，"CCTV6SD", "CCTV6HD", "CCTV6 高清"，"CCTV6 SD", "CCTV6 HD", "CCTV6电影", , "CCTV6电影高清"，"CCTV6电影SD", "CCTV6电影HD", "CCTV6电影 高清"，"CCTV6电影 SD", "CCTV6电影 HD", "CCTV-6 电影 高清"，, "CCTV-6 电影 HD", "CCTV-6 电影 SD" ],
+        "CCTV-7 国防军事": ["CCTV-7", "CCTV-7HD", "CCTV-7SD",  ",CCTV-7高清",  "CCTV-7 HD", "CCTV-7 SD",  ",CCTV-7 高清", "CCTV7" , "CCTV7高清"，"CCTV7SD", "CCTV7HD", "CCTV7 高清"，"CCTV7 SD", "CCTV7 HD", "CCTV7国防军事", , "CCTV7国防军事高清"，"CCTV7国防军事SD", "CCTV7国防军事HD", "CCTV7国防军事 高清"，"CCTV7国防军事 SD", "CCTV7国防军事 HD", "CCTV-7 国防军事 高清"，, "CCTV-7 国防军事 HD", "CCTV-7 国防军事 SD" ],
+        "CCTV-8 电视剧": ["CCTV-8", "CCTV-8HD", "CCTV-8SD",  ",CCTV-8高清",  "CCTV-8 HD", "CCTV-8 SD",  ",CCTV-8 高清", "CCTV8" , "CCTV8高清"，"CCTV8SD", "CCTV8HD", "CCTV8 高清"，"CCTV8 SD", "CCTV8 HD", "CCTV8电视剧", , "CCTV8电视剧高清"，"CCTV8电视剧SD", "CCTV8电视剧HD", "CCTV8电视剧 高清"，"CCTV8电视剧 SD", "CCTV8电视剧 HD", "CCTV-8 电视剧 高清"，, "CCTV-8 电视剧 HD", "CCTV-8 电视剧 SD" ],
+        "CCTV-9 纪录": ["CCTV-9", "CCTV-9HD", "CCTV-9SD",  ",CCTV-9高清",  "CCTV-9 HD", "CCTV-9 SD",  ",CCTV-9 高清", "CCTV9" , "CCTV9高清"，"CCTV9SD", "CCTV9HD", "CCTV9 高清"，"CCTV9 SD", "CCTV9 HD", "CCTV9纪录", , "CCTV9纪录高清"，"CCTV9纪录SD", "CCTV9纪录HD", "CCTV9纪录 高清"，"CCTV9纪录 SD", "CCTV9纪录 HD", "CCTV-9 纪录 高清"，, "CCTV-9 纪录 HD", "CCTV-9 纪录 SD" ],
+        "CCTV-10 科教": ["CCTV-10", "CCTV-10HD", "CCTV-10SD",  ",CCTV-10高清",  "CCTV-10 HD", "CCTV-10 SD",  ",CCTV-10 高清", "CCTV10" , "CCTV10高清"，"CCTV10SD", "CCTV10HD", "CCTV10 高清"，"CCTV10 SD", "CCTV10 HD", "CCTV10科教", , "CCTV10科教高清"，"CCTV10科教SD", "CCTV10科教HD", "CCTV10科教 高清"，"CCTV10科教 SD", "CCTV10科教 HD", "CCTV-10 科教 高清"，, "CCTV-10 科教 HD", "CCTV-10 科教 SD" ],
+        "CCTV-11 戏曲": ["CCTV-11", "CCTV-11HD", "CCTV-11SD",  ",CCTV-11高清",  "CCTV-11 HD", "CCTV-11 SD",  ",CCTV-11 高清", "CCTV11" , "CCTV11高清"，"CCTV11SD", "CCTV11HD", "CCTV11 高清"，"CCTV11 SD", "CCTV11 HD", "CCTV11戏曲", , "CCTV11戏曲高清"，"CCTV11戏曲SD", "CCTV11戏曲HD", "CCTV11戏曲 高清"，"CCTV11戏曲 SD", "CCTV11戏曲 HD", "CCTV-11 戏曲 高清"，, "CCTV-11 戏曲 HD", "CCTV-11 戏曲 SD" ],
+        "CCTV-12 社会与法": ["CCTV-12", "CCTV-12HD", "CCTV-12SD",  ",CCTV-12高清",  "CCTV-12 HD", "CCTV-12 SD",  ",CCTV-12 高清", "CCTV12" , "CCTV12高清"，"CCTV12SD", "CCTV12HD", "CCTV12 高清"，"CCTV12 SD", "CCTV12 HD", "CCTV12社会与法", , "CCTV12社会与法高清"，"CCTV12社会与法SD", "CCTV12社会与法HD", "CCTV12社会与法 高清"，"CCTV12社会与法 SD", "CCTV12社会与法 HD", "CCTV-12 社会与法 高清"，, "CCTV-12 社会与法 HD", "CCTV-12 社会与法 SD" ],
+        "CCTV-13 新闻": ["CCTV-13", "CCTV-13HD", "CCTV-13SD",  ",CCTV-13高清",  "CCTV-13 HD", "CCTV-13 SD",  ",CCTV-13 高清", "CCTV13" , "CCTV13高清"，"CCTV13SD", "CCTV13HD", "CCTV13 高清"，"CCTV13 SD", "CCTV13 HD", "CCTV13新闻", , "CCTV13新闻高清"，"CCTV13新闻SD", "CCTV13新闻HD", "CCTV13新闻 高清"，"CCTV13新闻 SD", "CCTV13新闻 HD", "CCTV-13 新闻 高清"，, "CCTV-13 新闻 HD", "CCTV-13 新闻 SD" ],
+        "CCTV-14 少儿": ["CCTV-14", "CCTV-14HD", "CCTV-14SD",  ",CCTV-14高清",  "CCTV-14 HD", "CCTV-14 SD",  ",CCTV-14 高清", "CCTV14" , "CCTV14高清"，"CCTV14SD", "CCTV14HD", "CCTV14 高清"，"CCTV14 SD", "CCTV14 HD", "CCTV14少儿", , "CCTV14少儿高清"，"CCTV14少儿SD", "CCTV14少儿HD", "CCTV14少儿 高清"，"CCTV14少儿 SD", "CCTV14少儿 HD", "CCTV-14 少儿 高清"，, "CCTV-14 少儿 HD", "CCTV-14 少儿 SD" ],
+        "CCTV-15 音乐": ["CCTV-15", "CCTV-15HD", "CCTV-15SD",  ",CCTV-15高清",  "CCTV-15 HD", "CCTV-15 SD",  ",CCTV-15 高清", "CCTV15" , "CCTV15高清"，"CCTV15SD", "CCTV15HD", "CCTV15 高清"，"CCTV15 SD", "CCTV15 HD", "CCTV15音乐", , "CCTV15音乐高清"，"CCTV15音乐SD", "CCTV15音乐HD", "CCTV15音乐 高清"，"CCTV15音乐 SD", "CCTV15音乐 HD", "CCTV-15 音乐 高清"，, "CCTV-15 音乐 HD", "CCTV-15 音乐 SD" ],
+        "CCTV-16 奥林匹克": ["CCTV-16", "CCTV-16HD", "CCTV-16SD",  ",CCTV-16高清",  "CCTV-16 HD", "CCTV-16 SD",  ",CCTV-16 高清", "CCTV16" , "CCTV16高清"，"CCTV16SD", "CCTV16HD", "CCTV16 高清"，"CCTV16 SD", "CCTV16 HD", "CCTV16奥林匹克", , "CCTV16奥林匹克高清"，"CCTV16奥林匹克SD", "CCTV16奥林匹克HD", "CCTV16奥林匹克 高清"，"CCTV16奥林匹克 SD", "CCTV16奥林匹克 HD", "CCTV-16 奥林匹克 高清"，, "CCTV-16 奥林匹克 HD", "CCTV-16 奥林匹克 SD" ],
+        "CCTV-17 农业农村": ["CCTV-17", "CCTV-17HD", "CCTV-17SD",  ",CCTV-17高清",  "CCTV-17 HD", "CCTV-17 SD",  ",CCTV-17 高清", "CCTV17" , "CCTV17高清"，"CCTV17SD", "CCTV17HD", "CCTV17 高清"，"CCTV17 SD", "CCTV17 HD", "CCTV17农业农村", , "CCTV17农业农村高清"，"CCTV17农业农村SD", "CCTV17农业农村HD", "CCTV17农业农村 高清"，"CCTV17农业农村 SD", "CCTV17农业农村 HD", "CCTV-17 农业农村 高清"，, "CCTV-17 农业农村 HD", "CCTV-17 农业农村 SD" ],
+        "CCTV-4K 超高清": ["CCTV-4K", "CCTV-4KHD", "CCTV-4KSD",  ",CCTV-4K高清",  "CCTV-4K HD", "CCTV-4K SD",  ",CCTV-4K 高清", "CCTV4K" , "CCTV4K高清"，"CCTV4KSD", "CCTV4KHD", "CCTV4K 高清"，"CCTV4K SD", "CCTV4K HD", "CCTV4K超高清", , "CCTV4K超高清高清"，"CCTV4K超高清SD", "CCTV4K超高清HD", "CCTV4K超高清 高清"，"CCTV4K超高清 SD", "CCTV4K超高清 HD", "CCTV-4K 超高清 高清"，, "CCTV-4K 超高清 HD", "CCTV-4K 超高清 SD" ],
+        "河南卫视": ["河南卫视HD", "河南卫视高清"， "河南卫视SD"],
+        "BTV北京卫视": ["BTV北京卫视HD", "BTV北京卫视高清"， "BTV北京卫视SD"],
+        "SCTV康巴卫视": ["SCTV康巴卫视HD", "SCTV康巴卫视高清"， "SCTV康巴卫视SD"],
+        "安徽卫视": ["安徽卫视HD", "安徽卫视高清"， "安徽卫视SD"],
+        "安微卫视": ["安微卫视HD", "安微卫视高清"， "安微卫视SD"],
+        "澳门卫视": ["澳门卫视HD", "澳门卫视高清"， "澳门卫视SD"],
+        "北京卫视": ["北京卫视HD", "北京卫视高清"， "北京卫视SD"],
+        "北京卫视冬奥纪实": ["北京卫视冬奥纪实HD", "北京卫视冬奥纪实高清"， "北京卫视冬奥纪实SD"],
+        "兵团卫视": ["兵团卫视HD", "兵团卫视高清"， "兵团卫视SD"],
+        "东方卫视": ["东方卫视HD", "东方卫视高清"， "东方卫视SD"],
+        "东南卫视": ["东南卫视HD", "东南卫视高清"， "东南卫视SD"],
+        "凤凰卫视中文台": ["凤凰卫视中文台HD", "凤凰卫视中文台高清"， "凤凰卫视中文台SD"],
+        "凤凰卫视资讯台": ["凤凰卫视资讯台HD", "凤凰卫视资讯台高清"， "凤凰卫视资讯台SD"],
+        "福建东南卫视": ["福建东南卫视HD", "福建东南卫视高清"， "福建东南卫视SD"],
+        "福建卫视": ["福建卫视HD", "福建卫视高清"， "福建卫视SD"],
+        "甘肃卫视": ["甘肃卫视HD", "甘肃卫视高清"， "甘肃卫视SD"],
+        "广东大湾区卫视": ["广东大湾区卫视HD", "广东大湾区卫视高清"， "广东大湾区卫视SD"],
+        "广东南方卫视": ["广东南方卫视HD", "广东南方卫视高清"， "广东南方卫视SD"],
+        "广东卫视": ["广东卫视HD", "广东卫视高清"， "广东卫视SD"],
+        "广西卫视": ["广西卫视HD", "广西卫视高清"， "广西卫视SD"],
+        "贵州卫视": ["贵州卫视HD", "贵州卫视高清"， "贵州卫视SD"],
+        "海南卫视": ["海南卫视HD", "海南卫视高清"， "海南卫视SD"],
+        "河北卫视": ["河北卫视HD", "河北卫视高清"， "河北卫视SD"],
+        "黑龙江卫视": ["黑龙江卫视HD", "黑龙江卫视高清"， "黑龙江卫视SD"],
+        "湖北卫视": ["湖北卫视HD", "湖北卫视高清"， "湖北卫视SD"],
+        "湖南卫视": ["湖南卫视HD", "湖南卫视高清"， "湖南卫视SD"],
+        "黄河卫视": ["黄河卫视HD", "黄河卫视高清"， "黄河卫视SD"],
+        "吉林卫视": ["吉林卫视HD", "吉林卫视高清"， "吉林卫视SD"],
+        "吉林延边卫视": ["吉林延边卫视HD", "吉林延边卫视高清"， "吉林延边卫视SD"],
+        "江苏卫视": ["江苏卫视HD", "江苏卫视高清"， "江苏卫视SD"],
+        "江西卫视": ["江西卫视HD", "江西卫视高清"， "江西卫视SD"],
+        "辽宁卫视": ["辽宁卫视HD", "辽宁卫视高清"， "辽宁卫视SD"],
+        "旅游卫视": ["旅游卫视HD", "旅游卫视高清"， "旅游卫视SD"],
+        "南方卫视": ["南方卫视HD", "南方卫视高清"， "南方卫视SD"],
+        "内蒙古卫视": ["内蒙古卫视HD", "内蒙古卫视高清"， "内蒙古卫视SD"],
+        "内蒙卫视": ["内蒙卫视HD", "内蒙卫视高清"， "内蒙卫视SD"],
+        "宁夏卫视": ["宁夏卫视HD", "宁夏卫视高清"， "宁夏卫视SD"],
+        "农林卫视": ["农林卫视HD", "农林卫视高清"， "农林卫视SD"],
+        "青海卫视": ["青海卫视HD", "青海卫视高清"， "青海卫视SD"],
+        "三沙卫视": ["三沙卫视HD", "三沙卫视高清"， "三沙卫视SD"],
+        "厦门卫视": ["厦门卫视HD", "厦门卫视高清"， "厦门卫视SD"],
+        "山东卫视": ["山东卫视HD", "山东卫视高清"， "山东卫视SD"],
+        "山西卫视": ["山西卫视HD", "山西卫视高清"， "山西卫视SD"],
+        "陕西卫视": ["陕西卫视HD", "陕西卫视高清"， "陕西卫视SD"],
+        "上海东方卫视": ["上海东方卫视HD", "上海东方卫视高清"， "上海东方卫视SD"],
+        "上海卫视": ["上海卫视HD", "上海卫视高清"， "上海卫视SD"],
+        "深圳卫视": ["深圳卫视HD", "深圳卫视高清"， "深圳卫视SD"],
+        "四川卫视": ["四川卫视HD", "四川卫视高清"， "四川卫视SD"],
+        "天津卫视": ["天津卫视HD", "天津卫视高清"， "天津卫视SD"],
+        "西藏卫视": ["西藏卫视HD", "西藏卫视高清"， "西藏卫视SD"],
+        "香港卫视": ["香港卫视HD", "香港卫视高清"， "香港卫视SD"],
+        "新疆卫视": ["新疆卫视HD", "新疆卫视高清"， "新疆卫视SD"],
+        "星空卫视": ["星空卫视HD", "星空卫视高清"， "星空卫视SD"],
+        "云南卫视": ["云南卫视HD", "云南卫视高清"， "云南卫视SD"],
+        "浙江卫视": ["浙江卫视HD", "浙江卫视高清"， "浙江卫视SD"],
+        "重庆卫视": ["重庆卫视HD", "重庆卫视高清"， "重庆卫视SD"], 
         # ... (此处省略部分以保持长度，实际使用时请保留您完整的字典)
     }.items()
     for alias in aliases
@@ -226,6 +277,17 @@ def get_host_key(u: str) -> Optional[str]:
     except Exception:
         return None
 
+# ================== 自然排序辅助函数 ==================
+def natural_sort_key(s: str) -> tuple:
+    """
+    返回可用于排序的元组，实现数字部分自然排序。
+    例如：CCTV1, CCTV2, CCTV10 会按 1,2,10 排序。
+    """
+    def convert(text):
+        return int(text) if text.isdigit() else text.lower()
+    parts = re.split(r'(\d+)', s)
+    return tuple(convert(p) for p in parts)
+
 # ================== 核心：频道名称标准化 (严格复刻 Guovin/iptv-api) ==================
 def normalize_channel_name(name: str) -> str:
     """
@@ -267,7 +329,7 @@ def normalize_channel_name(name: str) -> str:
     # Step 5: 移除冗余后缀
     suffix_pattern = (
         r'(?:'
-        r'HD|FHD|UHD|4K|超高清|高清|蓝光|标清|'
+        r'HD|SD|FHD|UHD|4K|超高清|高清|蓝光|标清|'
         r'综合频道？|电视频道？|直播频道？|官方频道？|'
         r'频道|TV|台|官方|正版|流畅|备用|测试|'
         r'Ch|CH|Channel|咪咕|真|极速|'
@@ -462,7 +524,7 @@ async def probe_ffmpeg(url: str, timeout: int) -> Dict[str, Any]:
 async def run_ocr_check_async(url: str, timeout: int) -> bool:
     """
     【增强特性】OCR 检测
-    对流截图并识别文字，检测“登录墙”、“区域限制”等软错误
+    对流截图并识别文字，检测"登录墙"、"区域限制"等软错误
     """
     if not OCR_AVAILABLE:
         return True
@@ -847,19 +909,42 @@ async def run_speed_test_all(channels: List[Dict[str, Any]]) -> List[Dict[str, A
                 valid_results.append(r)
         return valid_results
 
-def generate_outputs(final_channels: List[Dict[str, Any]], stats: Dict[str, Any], source_details: List[Dict[str, Any]]):
-    """生成输出文件和报告"""
+def sort_channels_with_predefined(channels: List[Dict[str, Any]], predefined_order: List[str]) -> List[Dict[str, Any]]:
+    """
+    按照预定义顺序 + 自然排序对频道列表排序
+    - 预定义列表中的频道按列表顺序排列
+    - 未在预定义列表中的频道按自然排序（数字优先）追加到末尾
+    """
+    name_to_item = {item['name']: item for item in channels}
+    
+    ordered = []
+    remaining = []
+    
+    # 预定义顺序中的频道（按顺序）
+    for name in predefined_order:
+        if name in name_to_item:
+            ordered.append(name_to_item[name])
+            del name_to_item[name]  # 移除已处理频道
+    
+    # 剩余的频道（未在预定义列表中）按自然排序
+    remaining = sorted(name_to_item.values(), key=lambda x: natural_sort_key(x['name']))
+    
+    return ordered + remaining
 
+def generate_outputs(final_channels: List[Dict[str, Any]], stats: Dict[str, Any], source_details: List[Dict[str, Any]], channel_order: Dict[str, List[str]]):
+    """生成输出文件和报告，支持预定义频道顺序"""
     group_to_channels: DefaultDict[str, List[Dict[str, Any]]] = defaultdict(list)
     for item in final_channels:
         g = guess_group(item['name'])
         group_to_channels[g].append(item)
 
-    # 在每个分组内按频道名称排序（默认字符串排序）
-    for chs in group_to_channels.values():
-        chs.sort(key=lambda x: x['name'])   # <-- 新增排序
+    # 对每个分组应用自定义排序（预定义顺序 + 自然排序）
+    for group_name, chs in group_to_channels.items():
+        predefined = channel_order.get(group_name, [])
+        sorted_chs = sort_channels_with_predefined(chs, predefined)
+        group_to_channels[group_name] = sorted_chs
 
-    # 排序分组
+    # 排序分组（按预定义分组顺序）
     ordered_groups = []
     for g_name in Config.GROUP_OUTPUT_ORDER:
         if g_name in group_to_channels:
@@ -878,7 +963,7 @@ def generate_outputs(final_channels: List[Dict[str, Any]], stats: Dict[str, Any]
                 f.write(f'#EXTINF:-1 tvg-id="{item["name"]}" tvg-name="{item["name"]}" tvg-logo="{logo}" group-title="{group_name}",{item["name"]}\n{item["url"]}\n')
     
     # 写报告
-    report = f"# ✅ IPTV 清洗报告 (Guovin Logic Strict + 频道去重)\n> **时间**: {beijing_time_str()}\n> **存活率**: {stats['survival_rate']:.1f}%\n\n"
+    report = f"# ✅ IPTV 清洗报告 (Guovin Logic Strict + 频道去重 + 预定义排序)\n> **时间**: {beijing_time_str()}\n> **存活率**: {stats['survival_rate']:.1f}%\n\n"
     report += f"| 原始频道 | 唯一主机 | 存活频道 | 最终保留 |\n|---|---|---|---|\n| {stats['raw_channels']} | {stats['unique_hosts']} | {stats['alive_channels']} | {stats['final_channels']} |\n\n"
     report += "## 📺 分组统计\n"
     for g, chs in sorted(group_to_channels.items(), key=lambda x: len(x[1]), reverse=True):
@@ -920,11 +1005,33 @@ def send_bark_report(report_path: str, device_key: str) -> None:
     except Exception as e:
         logging.error(f"Bark 发送异常: {e}")
 
+def load_channel_order() -> Dict[str, List[str]]:
+    """加载频道顺序配置文件，文件不存在或无效时返回空字典"""
+    if not os.path.exists(Config.CHANNEL_ORDER_FILE):
+        logging.info("未找到频道顺序配置文件，将使用自然排序")
+        return {}
+    try:
+        with open(Config.CHANNEL_ORDER_FILE, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        if not isinstance(data, dict):
+            logging.warning("频道顺序配置文件格式错误，应为JSON对象，使用自然排序")
+            return {}
+        # 可选：验证每个值是否为列表
+        for k, v in data.items():
+            if not isinstance(v, list):
+                logging.warning(f"分组 '{k}' 的顺序配置不是列表，将忽略该分组")
+                data[k] = []
+        logging.info(f"已加载频道顺序配置，包含 {len(data)} 个分组")
+        return data
+    except Exception as e:
+        logging.warning(f"加载频道顺序配置文件失败: {e}，将使用自然排序")
+        return {}
+
 def main():
     """主入口"""
     setup_logger()
     logging.info("="*60)
-    logging.info("🚀 IPTV 清洗系统 v2.0 (Strict Guovin Logic + 频道去重 + Bark 报告)")
+    logging.info("🚀 IPTV 清洗系统 v2.0 (Strict Guovin Logic + 频道去重 + Bark 报告 + 预定义排序)")
     logging.info("="*60)
     
     # 1. 加载数据
@@ -989,7 +1096,7 @@ def main():
     final_list = filter_and_sort_results(valid_results)
     logging.info(f"🎯 质量过滤后剩余: {len(final_list)}")
 
-    # ===== 新增：按频道名去重，只保留最优源 =====
+    # ===== 按频道名去重，只保留最优源 =====
     best_per_channel = {}
     for item in final_list:
         name = item['name']
@@ -998,6 +1105,9 @@ def main():
     final_list_unique = list(best_per_channel.values())
     logging.info(f"🎯 去重后唯一频道数: {len(final_list_unique)}")
     
+    # 加载频道顺序配置
+    channel_order = load_channel_order()
+    
     stats = {
         "raw_channels": len(filtered),
         "unique_hosts": len(hosts),
@@ -1005,7 +1115,7 @@ def main():
         "final_channels": len(final_list_unique),      # 使用去重后的数量
         "survival_rate": (len(valid_results)/len(filtered)*100) if filtered else 0
     }
-    generate_outputs(final_list_unique, stats, source_details)
+    generate_outputs(final_list_unique, stats, source_details, channel_order)
     
     # 5. Bark 通知：发送完整报告
     device_key = Config.BARK_DEVICE_KEY or os.getenv("BARK_DEVICE_KEY")
