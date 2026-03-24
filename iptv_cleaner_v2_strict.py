@@ -4,11 +4,11 @@
 IPTV 直播源智能清洗与验证系统（v2.0 Strict - Guovin Logic Edition + 频道去重 + Bark 报告 + 预定义频道顺序）
 
 【核心逻辑说明】
-本脚本严格遵循 Guovin/iptv-api 的核心业务逻辑，同时保留了原有的 OCR 检测和分组功能。
+本脚本严格遵循 Guovin/iptv-api 的核心业务逻辑, 同时保留了原有的 OCR 检测和分组功能。
 
 1. 频道标准化 (normalize_channel_name):
    - 多频道名拆分 (A-B-C -> A)
-   - 别名映射 (长匹配优先，基于 CHANNEL_ALIAS_MAP)
+   - 别名映射 (长匹配优先, 基于 CHANNEL_ALIAS_MAP)
    - 移除括号及内容
    - 统一连接符为空格
    - 移除冗余后缀 (HD, 频道, TV 等)
@@ -16,9 +16,9 @@ IPTV 直播源智能清洗与验证系统（v2.0 Strict - Guovin Logic Edition +
    - CGTN 前缀标准化
 
 2. 测速流程 (test_channel_speed):
-   - M3U8 分片测速：解析播放列表，下载前 5 个 TS 分片计算真实速度
+   - M3U8 分片测速：解析播放列表, 下载前 5 个 TS 分片计算真实速度
    - 滑动窗口稳定性算法：连续采样速度波动 < 15% 才判定为有效速度
-   - FFmpeg 降级探测：HTTP 测速失败时，调用 ffprobe 获取分辨率/编码
+   - FFmpeg 降级探测：HTTP 测速失败时, 调用 ffprobe 获取分辨率/编码
    - OCR 软错误检测：识别"登录墙"、"区域限制"等无效画面
 
 3. 质量评估 (filter_and_sort_results):
@@ -26,14 +26,14 @@ IPTV 直播源智能清洗与验证系统（v2.0 Strict - Guovin Logic Edition +
    - 排序策略：速度降序 -> 延迟升序
 
 4. 频道去重 (新增)：
-   - 按标准化名称分组，每组保留第一个（排序后最优）源
+   - 按标准化名称分组, 每组保留第一个（排序后最优）源
 
 5. 频道排序 (新增)：
    - 支持通过 config/channel_order.json 预定义每个分组内频道的顺序
    - 未定义的频道按自然排序（数字优先）追加到组内末尾
 
 6. 架构:
-   - 完全异步 (AsyncIO + Aiohttp)，支持高并发测速
+   - 完全异步 (AsyncIO + Aiohttp), 支持高并发测速
 """
 
 import os
@@ -92,13 +92,13 @@ class Config:
     READ_TIMEOUT: int = 8               # 读取超时
     MAX_CONCURRENT: int = 100            # 最大并发数 (Semaphore 限制)
     
-    # 新增：是否使用主机级测速（False=每个URL独立测速，True=同主机复用测速结果）
+    # 新增：是否使用主机级测速（False=每个URL独立测速, True=同主机复用测速结果）
     USE_HOST_LEVEL_SPEED: bool = True
 
     # 滑动窗口稳定性算法参数
-    MIN_MEASURE_TIME: float = 1.0       # 最小测速时长 (秒)，低于此时长不判定稳定
+    MIN_MEASURE_TIME: float = 1.0       # 最小测速时长 (秒), 低于此时长不判定稳定
     STABILITY_WINDOW: int = 4           # 滑动窗口大小 (采样点数)
-    STABILITY_THRESHOLD: float = 0.15   # 速度波动阈值 (0.15 = 15%)，波动超过此值视为不稳定
+    STABILITY_THRESHOLD: float = 0.15   # 速度波动阈值 (0.15 = 15%), 波动超过此值视为不稳定
     MIN_BYTES: int = 64 * 1024          # 最小测试字节数 (64KB)
     
     # --- 质量评估策略 ---
@@ -107,7 +107,7 @@ class Config:
     MIN_RESOLUTION_VALUE: int = 0               # 最小分辨率像素值 (0=不限制)
     
     # 分辨率 - 速率映射表 (MB/s)
-    # 逻辑：如果测得速度低于该分辨率对应的阈值，则视为不合格（可能是假高清或卡顿）
+    # 逻辑：如果测得速度低于该分辨率对应的阈值, 则视为不合格（可能是假高清或卡顿）
     RESOLUTION_SPEED_MAP: Dict[str, float] = {
         "1920x1080": 1.5,
         "1280x720": 0.8,
@@ -139,88 +139,88 @@ class Config:
     ]
 
 # ================== 频道别名字典 (保持原有完整映射) ==================
-# 逻辑：将各种变体名称映射为标准名称，用于去重和分组
+# 逻辑：将各种变体名称映射为标准名称, 用于去重和分组
 CHANNEL_ALIAS_MAP: Dict[str, str] = {
     alias: std
     for std, aliases in {
-        "CCTV-1 综合": ["CCTV-1", "CCTV-1HD", "CCTV-1SD", "CCTV-1高清",  "CCTV-1 HD", "CCTV-1 SD", "CCTV-1 高清", "CCTV1" , "CCTV1高清"，"CCTV1SD", "CCTV1HD", "CCTV1 高清"，"CCTV1 SD", "CCTV1 HD", "CCTV1综合", , "CCTV1综合高清"，"CCTV1综合SD", "CCTV1综合HD", "CCTV1综合 高清"，"CCTV1综合 SD", "CCTV1综合 HD", "CCTV-1 综合 高清"，, "CCTV-1 综合 HD", "CCTV-1 综合 SD" ],
-        "CCTV-2 财经": ["CCTV-2", "CCTV-2HD", "CCTV-2SD", "CCTV-2高清",  "CCTV-2 HD", "CCTV-2 SD", "CCTV-2 高清", "CCTV2" , "CCTV2高清"，"CCTV2SD", "CCTV2HD", "CCTV2 高清"，"CCTV2 SD", "CCTV2 HD", "CCTV2财经", , "CCTV2财经高清"，"CCTV2财经SD", "CCTV2财经HD", "CCTV2财经 高清"，"CCTV2财经 SD", "CCTV2财经 HD", "CCTV-2 财经 高清"，, "CCTV-2 财经 HD", "CCTV-2 财经 SD" ],
-        "CCTV-3 综艺": ["CCTV-3", "CCTV-3HD", "CCTV-3SD", "CCTV-3高清",  "CCTV-3 HD", "CCTV-3 SD", "CCTV-3 高清", "CCTV3" , "CCTV3高清"，"CCTV3SD", "CCTV3HD", "CCTV3 高清"，"CCTV3 SD", "CCTV3 HD", "CCTV3综艺", , "CCTV3综艺高清"，"CCTV3综艺SD", "CCTV3综艺HD", "CCTV3综艺 高清"，"CCTV3综艺 SD", "CCTV3综艺 HD", "CCTV-3 综艺 高清"，, "CCTV-3 综艺 HD", "CCTV-3 综艺 SD" ],
-        "CCTV-4 中文国际": ["CCTV-4", "CCTV-4HD", "CCTV-4SD", "CCTV-4高清",  "CCTV-4 HD", "CCTV-4 SD", "CCTV-4 高清", "CCTV4" , "CCTV4高清"，"CCTV4SD", "CCTV4HD", "CCTV4 高清"，"CCTV4 SD", "CCTV4 HD", "CCTV4中文国际", , "CCTV4中文国际高清"，"CCTV4中文国际SD", "CCTV4中文国际HD", "CCTV4中文国际 高清"，"CCTV4中文国际 SD", "CCTV4中文国际 HD", "CCTV-4 中文国际 高清"，, "CCTV-4 中文国际 HD", "CCTV-4 中文国际 SD" ],
-        "CCTV-4 美洲": ["CCTV-4", "CCTV-4HD", "CCTV-4SD", "CCTV-4高清",  "CCTV-4 HD", "CCTV-4 SD", "CCTV-4 高清", "CCTV4" , "CCTV4高清"，"CCTV4SD", "CCTV4HD", "CCTV4 高清"，"CCTV4 SD", "CCTV4 HD", "CCTV4美洲", , "CCTV4美洲高清"，"CCTV4美洲SD", "CCTV4美洲HD", "CCTV4美洲 高清"，"CCTV4美洲 SD", "CCTV4美洲 HD", "CCTV-4 美洲 高清"，, "CCTV-4 美洲 HD", "CCTV-4 美洲 SD" ],
-        "CCTV-4 欧洲": ["CCTV-4", "CCTV-4HD", "CCTV-4SD", "CCTV-4高清",  "CCTV-4 HD", "CCTV-4 SD", "CCTV-4 高清", "CCTV4" , "CCTV4高清"，"CCTV4SD", "CCTV4HD", "CCTV4 高清"，"CCTV4 SD", "CCTV4 HD", "CCTV4欧洲", , "CCTV4欧洲高清"，"CCTV4欧洲SD", "CCTV4欧洲HD", "CCTV4欧洲 高清"，"CCTV4欧洲 SD", "CCTV4欧洲 HD", "CCTV-4 欧洲 高清"，, "CCTV-4 欧洲 HD", "CCTV-4 欧洲 SD" ],
-        "CCTV-5 体育": ["CCTV-5", "CCTV-5HD", "CCTV-5SD", "CCTV-5高清",  "CCTV-5 HD", "CCTV-5 SD", "CCTV-5 高清", "CCTV5" , "CCTV5高清"，"CCTV5SD", "CCTV5HD", "CCTV5 高清"，"CCTV5 SD", "CCTV5 HD", "CCTV5体育", , "CCTV5体育高清"，"CCTV5体育SD", "CCTV5体育HD", "CCTV5体育 高清"，"CCTV5体育 SD", "CCTV5体育 HD", "CCTV-5 体育 高清"，, "CCTV-5 体育 HD", "CCTV-5 体育 SD" ],
-        "CCTV-5+ 体育赛事": ["CCTV-5+", "CCTV-5+HD", "CCTV-5+SD", "CCTV-5+高清",  "CCTV-5+ HD", "CCTV-5+ SD", "CCTV-5+ 高清", "CCTV5+" , "CCTV5+高清"，"CCTV5+SD", "CCTV5+HD", "CCTV5+ 高清"，"CCTV5+ SD", "CCTV5+ HD", "CCTV5+体育赛事", , "CCTV5+体育赛事高清"，"CCTV5+体育赛事SD", "CCTV5+体育赛事HD", "CCTV5+体育赛事 高清"，"CCTV5+体育赛事 SD", "CCTV5+体育赛事 HD", "CCTV-5+ 体育赛事 高清"，, "CCTV-5+ 体育赛事 HD", "CCTV-5+ 体育赛事 SD" ],
-        "CCTV-6 电影": ["CCTV-6", "CCTV-6HD", "CCTV-6SD", "CCTV-6高清",  "CCTV-6 HD", "CCTV-6 SD", "CCTV-6 高清", "CCTV6" , "CCTV6高清"，"CCTV6SD", "CCTV6HD", "CCTV6 高清"，"CCTV6 SD", "CCTV6 HD", "CCTV6电影", , "CCTV6电影高清"，"CCTV6电影SD", "CCTV6电影HD", "CCTV6电影 高清"，"CCTV6电影 SD", "CCTV6电影 HD", "CCTV-6 电影 高清"，, "CCTV-6 电影 HD", "CCTV-6 电影 SD" ],
-        "CCTV-7 国防军事": ["CCTV-7", "CCTV-7HD", "CCTV-7SD", "CCTV-7高清",  "CCTV-7 HD", "CCTV-7 SD", "CCTV-7 高清", "CCTV7" , "CCTV7高清"，"CCTV7SD", "CCTV7HD", "CCTV7 高清"，"CCTV7 SD", "CCTV7 HD", "CCTV7国防军事", , "CCTV7国防军事高清"，"CCTV7国防军事SD", "CCTV7国防军事HD", "CCTV7国防军事 高清"，"CCTV7国防军事 SD", "CCTV7国防军事 HD", "CCTV-7 国防军事 高清"，, "CCTV-7 国防军事 HD", "CCTV-7 国防军事 SD" ],
-        "CCTV-8 电视剧": ["CCTV-8", "CCTV-8HD", "CCTV-8SD", "CCTV-8高清",  "CCTV-8 HD", "CCTV-8 SD", "CCTV-8 高清", "CCTV8" , "CCTV8高清"，"CCTV8SD", "CCTV8HD", "CCTV8 高清"，"CCTV8 SD", "CCTV8 HD", "CCTV8电视剧", , "CCTV8电视剧高清"，"CCTV8电视剧SD", "CCTV8电视剧HD", "CCTV8电视剧 高清"，"CCTV8电视剧 SD", "CCTV8电视剧 HD", "CCTV-8 电视剧 高清"，, "CCTV-8 电视剧 HD", "CCTV-8 电视剧 SD" ],
-        "CCTV-9 纪录": ["CCTV-9", "CCTV-9HD", "CCTV-9SD", "CCTV-9高清",  "CCTV-9 HD", "CCTV-9 SD", "CCTV-9 高清", "CCTV9" , "CCTV9高清"，"CCTV9SD", "CCTV9HD", "CCTV9 高清"，"CCTV9 SD", "CCTV9 HD", "CCTV9纪录", , "CCTV9纪录高清"，"CCTV9纪录SD", "CCTV9纪录HD", "CCTV9纪录 高清"，"CCTV9纪录 SD", "CCTV9纪录 HD", "CCTV-9 纪录 高清"，, "CCTV-9 纪录 HD", "CCTV-9 纪录 SD" ],
-        "CCTV-10 科教": ["CCTV-10", "CCTV-10HD", "CCTV-10SD", "CCTV-10高清",  "CCTV-10 HD", "CCTV-10 SD", "CCTV-10 高清", "CCTV10" , "CCTV10高清"，"CCTV10SD", "CCTV10HD", "CCTV10 高清"，"CCTV10 SD", "CCTV10 HD", "CCTV10科教", , "CCTV10科教高清"，"CCTV10科教SD", "CCTV10科教HD", "CCTV10科教 高清"，"CCTV10科教 SD", "CCTV10科教 HD", "CCTV-10 科教 高清"，, "CCTV-10 科教 HD", "CCTV-10 科教 SD" ],
-        "CCTV-11 戏曲": ["CCTV-11", "CCTV-11HD", "CCTV-11SD", "CCTV-11高清",  "CCTV-11 HD", "CCTV-11 SD", "CCTV-11 高清", "CCTV11" , "CCTV11高清"，"CCTV11SD", "CCTV11HD", "CCTV11 高清"，"CCTV11 SD", "CCTV11 HD", "CCTV11戏曲", , "CCTV11戏曲高清"，"CCTV11戏曲SD", "CCTV11戏曲HD", "CCTV11戏曲 高清"，"CCTV11戏曲 SD", "CCTV11戏曲 HD", "CCTV-11 戏曲 高清"，, "CCTV-11 戏曲 HD", "CCTV-11 戏曲 SD" ],
-        "CCTV-12 社会与法": ["CCTV-12", "CCTV-12HD", "CCTV-12SD", "CCTV-12高清",  "CCTV-12 HD", "CCTV-12 SD", "CCTV-12 高清", "CCTV12" , "CCTV12高清"，"CCTV12SD", "CCTV12HD", "CCTV12 高清"，"CCTV12 SD", "CCTV12 HD", "CCTV12社会与法", , "CCTV12社会与法高清"，"CCTV12社会与法SD", "CCTV12社会与法HD", "CCTV12社会与法 高清"，"CCTV12社会与法 SD", "CCTV12社会与法 HD", "CCTV-12 社会与法 高清"，, "CCTV-12 社会与法 HD", "CCTV-12 社会与法 SD" ],
-        "CCTV-13 新闻": ["CCTV-13", "CCTV-13HD", "CCTV-13SD", "CCTV-13高清",  "CCTV-13 HD", "CCTV-13 SD", "CCTV-13 高清", "CCTV13" , "CCTV13高清"，"CCTV13SD", "CCTV13HD", "CCTV13 高清"，"CCTV13 SD", "CCTV13 HD", "CCTV13新闻", , "CCTV13新闻高清"，"CCTV13新闻SD", "CCTV13新闻HD", "CCTV13新闻 高清"，"CCTV13新闻 SD", "CCTV13新闻 HD", "CCTV-13 新闻 高清"，, "CCTV-13 新闻 HD", "CCTV-13 新闻 SD" ],
-        "CCTV-14 少儿": ["CCTV-14", "CCTV-14HD", "CCTV-14SD", "CCTV-14高清",  "CCTV-14 HD", "CCTV-14 SD", "CCTV-14 高清", "CCTV14" , "CCTV14高清"，"CCTV14SD", "CCTV14HD", "CCTV14 高清"，"CCTV14 SD", "CCTV14 HD", "CCTV14少儿", , "CCTV14少儿高清"，"CCTV14少儿SD", "CCTV14少儿HD", "CCTV14少儿 高清"，"CCTV14少儿 SD", "CCTV14少儿 HD", "CCTV-14 少儿 高清"，, "CCTV-14 少儿 HD", "CCTV-14 少儿 SD" ],
-        "CCTV-15 音乐": ["CCTV-15", "CCTV-15HD", "CCTV-15SD", "CCTV-15高清",  "CCTV-15 HD", "CCTV-15 SD", "CCTV-15 高清", "CCTV15" , "CCTV15高清"，"CCTV15SD", "CCTV15HD", "CCTV15 高清"，"CCTV15 SD", "CCTV15 HD", "CCTV15音乐", , "CCTV15音乐高清"，"CCTV15音乐SD", "CCTV15音乐HD", "CCTV15音乐 高清"，"CCTV15音乐 SD", "CCTV15音乐 HD", "CCTV-15 音乐 高清"，, "CCTV-15 音乐 HD", "CCTV-15 音乐 SD" ],
-        "CCTV-16 奥林匹克": ["CCTV-16", "CCTV-16HD", "CCTV-16SD", "CCTV-16高清",  "CCTV-16 HD", "CCTV-16 SD", "CCTV-16 高清", "CCTV16" , "CCTV16高清"，"CCTV16SD", "CCTV16HD", "CCTV16 高清"，"CCTV16 SD", "CCTV16 HD", "CCTV16奥林匹克", , "CCTV16奥林匹克高清"，"CCTV16奥林匹克SD", "CCTV16奥林匹克HD", "CCTV16奥林匹克 高清"，"CCTV16奥林匹克 SD", "CCTV16奥林匹克 HD", "CCTV-16 奥林匹克 高清"，, "CCTV-16 奥林匹克 HD", "CCTV-16 奥林匹克 SD" ],
-        "CCTV-17 农业农村": ["CCTV-17", "CCTV-17HD", "CCTV-17SD", "CCTV-17高清",  "CCTV-17 HD", "CCTV-17 SD", "CCTV-17 高清", "CCTV17" , "CCTV17高清"，"CCTV17SD", "CCTV17HD", "CCTV17 高清"，"CCTV17 SD", "CCTV17 HD", "CCTV17农业农村", , "CCTV17农业农村高清"，"CCTV17农业农村SD", "CCTV17农业农村HD", "CCTV17农业农村 高清"，"CCTV17农业农村 SD", "CCTV17农业农村 HD", "CCTV-17 农业农村 高清"，, "CCTV-17 农业农村 HD", "CCTV-17 农业农村 SD" ],
-        "CCTV-4K 超高清": ["CCTV-4K", "CCTV-4KHD", "CCTV-4KSD", "CCTV-4K高清",  "CCTV-4K HD", "CCTV-4K SD", "CCTV-4K 高清", "CCTV4K" , "CCTV4K高清"，"CCTV4KSD", "CCTV4KHD", "CCTV4K 高清"，"CCTV4K SD", "CCTV4K HD", "CCTV4K超高清", , "CCTV4K超高清高清"，"CCTV4K超高清SD", "CCTV4K超高清HD", "CCTV4K超高清 高清"，"CCTV4K超高清 SD", "CCTV4K超高清 HD", "CCTV-4K 超高清 高清"，, "CCTV-4K 超高清 HD", "CCTV-4K 超高清 SD" ],
-        "河南卫视": ["河南卫视HD", "河南卫视高清"， "河南卫视SD"],
-        "BTV北京卫视": ["BTV北京卫视HD", "BTV北京卫视高清"， "BTV北京卫视SD"],
-        "SCTV康巴卫视": ["SCTV康巴卫视HD", "SCTV康巴卫视高清"， "SCTV康巴卫视SD"],
-        "安徽卫视": ["安徽卫视HD", "安徽卫视高清"， "安徽卫视SD"],
-        "安微卫视": ["安微卫视HD", "安微卫视高清"， "安微卫视SD"],
-        "澳门卫视": ["澳门卫视HD", "澳门卫视高清"， "澳门卫视SD"],
-        "北京卫视": ["北京卫视HD", "北京卫视高清"， "北京卫视SD"],
-        "北京卫视冬奥纪实": ["北京卫视冬奥纪实HD", "北京卫视冬奥纪实高清"， "北京卫视冬奥纪实SD"],
-        "兵团卫视": ["兵团卫视HD", "兵团卫视高清"， "兵团卫视SD"],
-        "东方卫视": ["东方卫视HD", "东方卫视高清"， "东方卫视SD"],
-        "东南卫视": ["东南卫视HD", "东南卫视高清"， "东南卫视SD"],
-        "凤凰卫视中文台": ["凤凰卫视中文台HD", "凤凰卫视中文台高清"， "凤凰卫视中文台SD"],
-        "凤凰卫视资讯台": ["凤凰卫视资讯台HD", "凤凰卫视资讯台高清"， "凤凰卫视资讯台SD"],
-        "福建东南卫视": ["福建东南卫视HD", "福建东南卫视高清"， "福建东南卫视SD"],
-        "福建卫视": ["福建卫视HD", "福建卫视高清"， "福建卫视SD"],
-        "甘肃卫视": ["甘肃卫视HD", "甘肃卫视高清"， "甘肃卫视SD"],
-        "广东大湾区卫视": ["广东大湾区卫视HD", "广东大湾区卫视高清"， "广东大湾区卫视SD"],
-        "广东南方卫视": ["广东南方卫视HD", "广东南方卫视高清"， "广东南方卫视SD"],
-        "广东卫视": ["广东卫视HD", "广东卫视高清"， "广东卫视SD"],
-        "广西卫视": ["广西卫视HD", "广西卫视高清"， "广西卫视SD"],
-        "贵州卫视": ["贵州卫视HD", "贵州卫视高清"， "贵州卫视SD"],
-        "海南卫视": ["海南卫视HD", "海南卫视高清"， "海南卫视SD"],
-        "河北卫视": ["河北卫视HD", "河北卫视高清"， "河北卫视SD"],
-        "黑龙江卫视": ["黑龙江卫视HD", "黑龙江卫视高清"， "黑龙江卫视SD"],
-        "湖北卫视": ["湖北卫视HD", "湖北卫视高清"， "湖北卫视SD"],
-        "湖南卫视": ["湖南卫视HD", "湖南卫视高清"， "湖南卫视SD"],
-        "黄河卫视": ["黄河卫视HD", "黄河卫视高清"， "黄河卫视SD"],
-        "吉林卫视": ["吉林卫视HD", "吉林卫视高清"， "吉林卫视SD"],
-        "吉林延边卫视": ["吉林延边卫视HD", "吉林延边卫视高清"， "吉林延边卫视SD"],
-        "江苏卫视": ["江苏卫视HD", "江苏卫视高清"， "江苏卫视SD"],
-        "江西卫视": ["江西卫视HD", "江西卫视高清"， "江西卫视SD"],
-        "辽宁卫视": ["辽宁卫视HD", "辽宁卫视高清"， "辽宁卫视SD"],
-        "旅游卫视": ["旅游卫视HD", "旅游卫视高清"， "旅游卫视SD"],
-        "南方卫视": ["南方卫视HD", "南方卫视高清"， "南方卫视SD"],
-        "内蒙古卫视": ["内蒙古卫视HD", "内蒙古卫视高清"， "内蒙古卫视SD"],
-        "内蒙卫视": ["内蒙卫视HD", "内蒙卫视高清"， "内蒙卫视SD"],
-        "宁夏卫视": ["宁夏卫视HD", "宁夏卫视高清"， "宁夏卫视SD"],
-        "农林卫视": ["农林卫视HD", "农林卫视高清"， "农林卫视SD"],
-        "青海卫视": ["青海卫视HD", "青海卫视高清"， "青海卫视SD"],
-        "三沙卫视": ["三沙卫视HD", "三沙卫视高清"， "三沙卫视SD"],
-        "厦门卫视": ["厦门卫视HD", "厦门卫视高清"， "厦门卫视SD"],
-        "山东卫视": ["山东卫视HD", "山东卫视高清"， "山东卫视SD"],
-        "山西卫视": ["山西卫视HD", "山西卫视高清"， "山西卫视SD"],
-        "陕西卫视": ["陕西卫视HD", "陕西卫视高清"， "陕西卫视SD"],
-        "上海东方卫视": ["上海东方卫视HD", "上海东方卫视高清"， "上海东方卫视SD"],
-        "上海卫视": ["上海卫视HD", "上海卫视高清"， "上海卫视SD"],
-        "深圳卫视": ["深圳卫视HD", "深圳卫视高清"， "深圳卫视SD"],
-        "四川卫视": ["四川卫视HD", "四川卫视高清"， "四川卫视SD"],
-        "天津卫视": ["天津卫视HD", "天津卫视高清"， "天津卫视SD"],
-        "西藏卫视": ["西藏卫视HD", "西藏卫视高清"， "西藏卫视SD"],
-        "香港卫视": ["香港卫视HD", "香港卫视高清"， "香港卫视SD"],
-        "新疆卫视": ["新疆卫视HD", "新疆卫视高清"， "新疆卫视SD"],
-        "星空卫视": ["星空卫视HD", "星空卫视高清"， "星空卫视SD"],
-        "云南卫视": ["云南卫视HD", "云南卫视高清"， "云南卫视SD"],
-        "浙江卫视": ["浙江卫视HD", "浙江卫视高清"， "浙江卫视SD"],
-        "重庆卫视": ["重庆卫视HD", "重庆卫视高清"， "重庆卫视SD"], 
-        # ... (此处省略部分以保持长度，实际使用时请保留您完整的字典)
+        "CCTV-1 综合": ["CCTV-1", "CCTV-1HD", "CCTV-1SD", "CCTV-1高清",  "CCTV-1 HD", "CCTV-1 SD", "CCTV-1 高清", "CCTV1", "CCTV1高清", "CCTV1SD", "CCTV1HD", "CCTV1 高清", "CCTV1 SD", "CCTV1 HD", "CCTV1综合", , "CCTV1综合高清", "CCTV1综合SD", "CCTV1综合HD", "CCTV1综合 高清", "CCTV1综合 SD", "CCTV1综合 HD", "CCTV-1 综合 高清", , "CCTV-1 综合 HD", "CCTV-1 综合 SD" ],
+        "CCTV-2 财经": ["CCTV-2", "CCTV-2HD", "CCTV-2SD", "CCTV-2高清",  "CCTV-2 HD", "CCTV-2 SD", "CCTV-2 高清", "CCTV2" , "CCTV2高清", "CCTV2SD", "CCTV2HD", "CCTV2 高清", "CCTV2 SD", "CCTV2 HD", "CCTV2财经", , "CCTV2财经高清", "CCTV2财经SD", "CCTV2财经HD", "CCTV2财经 高清", "CCTV2财经 SD", "CCTV2财经 HD", "CCTV-2 财经 高清", , "CCTV-2 财经 HD", "CCTV-2 财经 SD" ],
+        "CCTV-3 综艺": ["CCTV-3", "CCTV-3HD", "CCTV-3SD", "CCTV-3高清",  "CCTV-3 HD", "CCTV-3 SD", "CCTV-3 高清", "CCTV3" , "CCTV3高清", "CCTV3SD", "CCTV3HD", "CCTV3 高清", "CCTV3 SD", "CCTV3 HD", "CCTV3综艺", , "CCTV3综艺高清", "CCTV3综艺SD", "CCTV3综艺HD", "CCTV3综艺 高清", "CCTV3综艺 SD", "CCTV3综艺 HD", "CCTV-3 综艺 高清", , "CCTV-3 综艺 HD", "CCTV-3 综艺 SD" ],
+        "CCTV-4 中文国际": ["CCTV-4", "CCTV-4HD", "CCTV-4SD", "CCTV-4高清",  "CCTV-4 HD", "CCTV-4 SD", "CCTV-4 高清", "CCTV4" , "CCTV4高清", "CCTV4SD", "CCTV4HD", "CCTV4 高清", "CCTV4 SD", "CCTV4 HD", "CCTV4中文国际", , "CCTV4中文国际高清", "CCTV4中文国际SD", "CCTV4中文国际HD", "CCTV4中文国际 高清", "CCTV4中文国际 SD", "CCTV4中文国际 HD", "CCTV-4 中文国际 高清", , "CCTV-4 中文国际 HD", "CCTV-4 中文国际 SD" ],
+        "CCTV-4 美洲": ["CCTV-4", "CCTV-4HD", "CCTV-4SD", "CCTV-4高清",  "CCTV-4 HD", "CCTV-4 SD", "CCTV-4 高清", "CCTV4" , "CCTV4高清", "CCTV4SD", "CCTV4HD", "CCTV4 高清", "CCTV4 SD", "CCTV4 HD", "CCTV4美洲", , "CCTV4美洲高清", "CCTV4美洲SD", "CCTV4美洲HD", "CCTV4美洲 高清", "CCTV4美洲 SD", "CCTV4美洲 HD", "CCTV-4 美洲 高清", , "CCTV-4 美洲 HD", "CCTV-4 美洲 SD" ],
+        "CCTV-4 欧洲": ["CCTV-4", "CCTV-4HD", "CCTV-4SD", "CCTV-4高清",  "CCTV-4 HD", "CCTV-4 SD", "CCTV-4 高清", "CCTV4" , "CCTV4高清", "CCTV4SD", "CCTV4HD", "CCTV4 高清", "CCTV4 SD", "CCTV4 HD", "CCTV4欧洲", , "CCTV4欧洲高清", "CCTV4欧洲SD", "CCTV4欧洲HD", "CCTV4欧洲 高清", "CCTV4欧洲 SD", "CCTV4欧洲 HD", "CCTV-4 欧洲 高清", , "CCTV-4 欧洲 HD", "CCTV-4 欧洲 SD" ],
+        "CCTV-5 体育": ["CCTV-5", "CCTV-5HD", "CCTV-5SD", "CCTV-5高清",  "CCTV-5 HD", "CCTV-5 SD", "CCTV-5 高清", "CCTV5" , "CCTV5高清", "CCTV5SD", "CCTV5HD", "CCTV5 高清", "CCTV5 SD", "CCTV5 HD", "CCTV5体育", , "CCTV5体育高清", "CCTV5体育SD", "CCTV5体育HD", "CCTV5体育 高清", "CCTV5体育 SD", "CCTV5体育 HD", "CCTV-5 体育 高清", , "CCTV-5 体育 HD", "CCTV-5 体育 SD" ],
+        "CCTV-5+ 体育赛事": ["CCTV-5+", "CCTV-5+HD", "CCTV-5+SD", "CCTV-5+高清",  "CCTV-5+ HD", "CCTV-5+ SD", "CCTV-5+ 高清", "CCTV5+" , "CCTV5+高清","CCTV5+SD", "CCTV5+HD", "CCTV5+ 高清","CCTV5+ SD", "CCTV5+ HD", "CCTV5+体育赛事", , "CCTV5+体育赛事高清","CCTV5+体育赛事SD", "CCTV5+体育赛事HD", "CCTV5+体育赛事 高清", "CCTV5+体育赛事 SD", "CCTV5+体育赛事 HD", "CCTV-5+ 体育赛事 高清", , "CCTV-5+ 体育赛事 HD", "CCTV-5+ 体育赛事 SD" ],
+        "CCTV-6 电影": ["CCTV-6", "CCTV-6HD", "CCTV-6SD", "CCTV-6高清",  "CCTV-6 HD", "CCTV-6 SD", "CCTV-6 高清", "CCTV6" , "CCTV6高清", "CCTV6SD", "CCTV6HD", "CCTV6 高清", "CCTV6 SD", "CCTV6 HD", "CCTV6电影", , "CCTV6电影高清", "CCTV6电影SD", "CCTV6电影HD", "CCTV6电影 高清", "CCTV6电影 SD", "CCTV6电影 HD", "CCTV-6 电影 高清", , "CCTV-6 电影 HD", "CCTV-6 电影 SD" ],
+        "CCTV-7 国防军事": ["CCTV-7", "CCTV-7HD", "CCTV-7SD", "CCTV-7高清",  "CCTV-7 HD", "CCTV-7 SD", "CCTV-7 高清", "CCTV7" , "CCTV7高清", "CCTV7SD", "CCTV7HD", "CCTV7 高清", "CCTV7 SD", "CCTV7 HD", "CCTV7国防军事", , "CCTV7国防军事高清", "CCTV7国防军事SD", "CCTV7国防军事HD", "CCTV7国防军事 高清", "CCTV7国防军事 SD", "CCTV7国防军事 HD", "CCTV-7 国防军事 高清", , "CCTV-7 国防军事 HD", "CCTV-7 国防军事 SD" ],
+        "CCTV-8 电视剧": ["CCTV-8", "CCTV-8HD", "CCTV-8SD", "CCTV-8高清",  "CCTV-8 HD", "CCTV-8 SD", "CCTV-8 高清", "CCTV8" , "CCTV8高清", "CCTV8SD", "CCTV8HD", "CCTV8 高清", "CCTV8 SD", "CCTV8 HD", "CCTV8电视剧", , "CCTV8电视剧高清", "CCTV8电视剧SD", "CCTV8电视剧HD", "CCTV8电视剧 高清", "CCTV8电视剧 SD", "CCTV8电视剧 HD", "CCTV-8 电视剧 高清", , "CCTV-8 电视剧 HD", "CCTV-8 电视剧 SD" ],
+        "CCTV-9 纪录": ["CCTV-9", "CCTV-9HD", "CCTV-9SD", "CCTV-9高清",  "CCTV-9 HD", "CCTV-9 SD", "CCTV-9 高清", "CCTV9" , "CCTV9高清", "CCTV9SD", "CCTV9HD", "CCTV9 高清", "CCTV9 SD", "CCTV9 HD", "CCTV9纪录", , "CCTV9纪录高清", "CCTV9纪录SD", "CCTV9纪录HD", "CCTV9纪录 高清", "CCTV9纪录 SD", "CCTV9纪录 HD", "CCTV-9 纪录 高清", , "CCTV-9 纪录 HD", "CCTV-9 纪录 SD" ],
+        "CCTV-10 科教": ["CCTV-10", "CCTV-10HD", "CCTV-10SD", "CCTV-10高清",  "CCTV-10 HD", "CCTV-10 SD", "CCTV-10 高清", "CCTV10" , "CCTV10高清", "CCTV10SD", "CCTV10HD", "CCTV10 高清", "CCTV10 SD", "CCTV10 HD", "CCTV10科教", , "CCTV10科教高清", "CCTV10科教SD", "CCTV10科教HD", "CCTV10科教 高清", "CCTV10科教 SD", "CCTV10科教 HD", "CCTV-10 科教 高清", , "CCTV-10 科教 HD", "CCTV-10 科教 SD" ],
+        "CCTV-11 戏曲": ["CCTV-11", "CCTV-11HD", "CCTV-11SD", "CCTV-11高清",  "CCTV-11 HD", "CCTV-11 SD", "CCTV-11 高清", "CCTV11" , "CCTV11高清", "CCTV11SD", "CCTV11HD", "CCTV11 高清", "CCTV11 SD", "CCTV11 HD", "CCTV11戏曲", , "CCTV11戏曲高清", "CCTV11戏曲SD", "CCTV11戏曲HD", "CCTV11戏曲 高清", "CCTV11戏曲 SD", "CCTV11戏曲 HD", "CCTV-11 戏曲 高清", , "CCTV-11 戏曲 HD", "CCTV-11 戏曲 SD" ],
+        "CCTV-12 社会与法": ["CCTV-12", "CCTV-12HD", "CCTV-12SD", "CCTV-12高清",  "CCTV-12 HD", "CCTV-12 SD", "CCTV-12 高清", "CCTV12" , "CCTV12高清", "CCTV12SD", "CCTV12HD", "CCTV12 高清", "CCTV12 SD", "CCTV12 HD", "CCTV12社会与法", , "CCTV12社会与法高清", "CCTV12社会与法SD", "CCTV12社会与法HD", "CCTV12社会与法 高清", "CCTV12社会与法 SD", "CCTV12社会与法 HD", "CCTV-12 社会与法 高清", , "CCTV-12 社会与法 HD", "CCTV-12 社会与法 SD" ],
+        "CCTV-13 新闻": ["CCTV-13", "CCTV-13HD", "CCTV-13SD", "CCTV-13高清",  "CCTV-13 HD", "CCTV-13 SD", "CCTV-13 高清", "CCTV13" , "CCTV13高清", "CCTV13SD", "CCTV13HD", "CCTV13 高清", "CCTV13 SD", "CCTV13 HD", "CCTV13新闻", , "CCTV13新闻高清", "CCTV13新闻SD", "CCTV13新闻HD", "CCTV13新闻 高清", "CCTV13新闻 SD", "CCTV13新闻 HD", "CCTV-13 新闻 高清", , "CCTV-13 新闻 HD", "CCTV-13 新闻 SD" ],
+        "CCTV-14 少儿": ["CCTV-14", "CCTV-14HD", "CCTV-14SD", "CCTV-14高清",  "CCTV-14 HD", "CCTV-14 SD", "CCTV-14 高清", "CCTV14" , "CCTV14高清", "CCTV14SD", "CCTV14HD", "CCTV14 高清", "CCTV14 SD", "CCTV14 HD", "CCTV14少儿", , "CCTV14少儿高清", "CCTV14少儿SD", "CCTV14少儿HD", "CCTV14少儿 高清", "CCTV14少儿 SD", "CCTV14少儿 HD", "CCTV-14 少儿 高清", , "CCTV-14 少儿 HD", "CCTV-14 少儿 SD" ],
+        "CCTV-15 音乐": ["CCTV-15", "CCTV-15HD", "CCTV-15SD", "CCTV-15高清",  "CCTV-15 HD", "CCTV-15 SD", "CCTV-15 高清", "CCTV15" , "CCTV15高清", "CCTV15SD", "CCTV15HD", "CCTV15 高清", "CCTV15 SD", "CCTV15 HD", "CCTV15音乐", , "CCTV15音乐高清", "CCTV15音乐SD", "CCTV15音乐HD", "CCTV15音乐 高清", "CCTV15音乐 SD", "CCTV15音乐 HD", "CCTV-15 音乐 高清", , "CCTV-15 音乐 HD", "CCTV-15 音乐 SD" ],
+        "CCTV-16 奥林匹克": ["CCTV-16", "CCTV-16HD", "CCTV-16SD", "CCTV-16高清",  "CCTV-16 HD", "CCTV-16 SD", "CCTV-16 高清", "CCTV16" , "CCTV16高清", "CCTV16SD", "CCTV16HD", "CCTV16 高清", "CCTV16 SD", "CCTV16 HD", "CCTV16奥林匹克", , "CCTV16奥林匹克高清", "CCTV16奥林匹克SD", "CCTV16奥林匹克HD", "CCTV16奥林匹克 高清", "CCTV16奥林匹克 SD", "CCTV16奥林匹克 HD", "CCTV-16 奥林匹克 高清", , "CCTV-16 奥林匹克 HD", "CCTV-16 奥林匹克 SD" ],
+        "CCTV-17 农业农村": ["CCTV-17", "CCTV-17HD", "CCTV-17SD", "CCTV-17高清",  "CCTV-17 HD", "CCTV-17 SD", "CCTV-17 高清", "CCTV17" , "CCTV17高清", "CCTV17SD", "CCTV17HD", "CCTV17 高清", "CCTV17 SD", "CCTV17 HD", "CCTV17农业农村", , "CCTV17农业农村高清", "CCTV17农业农村SD", "CCTV17农业农村HD", "CCTV17农业农村 高清", "CCTV17农业农村 SD", "CCTV17农业农村 HD", "CCTV-17 农业农村 高清", , "CCTV-17 农业农村 HD", "CCTV-17 农业农村 SD" ],
+        "CCTV-4K 超高清": ["CCTV-4K", "CCTV-4KHD", "CCTV-4KSD", "CCTV-4K高清",  "CCTV-4K HD", "CCTV-4K SD", "CCTV-4K 高清", "CCTV4K" , "CCTV4K高清", "CCTV4KSD", "CCTV4KHD", "CCTV4K 高清", "CCTV4K SD", "CCTV4K HD", "CCTV4K超高清", , "CCTV4K超高清高清", "CCTV4K超高清SD", "CCTV4K超高清HD", "CCTV4K超高清 高清", "CCTV4K超高清 SD", "CCTV4K超高清 HD", "CCTV-4K 超高清 高清", , "CCTV-4K 超高清 HD", "CCTV-4K 超高清 SD" ],
+        "河南卫视": ["河南卫视HD", "河南卫视高清",  "河南卫视SD"],
+        "BTV北京卫视": ["BTV北京卫视HD", "BTV北京卫视高清",  "BTV北京卫视SD"],
+        "SCTV康巴卫视": ["SCTV康巴卫视HD", "SCTV康巴卫视高清",  "SCTV康巴卫视SD"],
+        "安徽卫视": ["安徽卫视HD", "安徽卫视高清",  "安徽卫视SD"],
+        "安微卫视": ["安微卫视HD", "安微卫视高清",  "安微卫视SD"],
+        "澳门卫视": ["澳门卫视HD", "澳门卫视高清",  "澳门卫视SD"],
+        "北京卫视": ["北京卫视HD", "北京卫视高清",  "北京卫视SD"],
+        "北京卫视冬奥纪实": ["北京卫视冬奥纪实HD", "北京卫视冬奥纪实高清",  "北京卫视冬奥纪实SD"],
+        "兵团卫视": ["兵团卫视HD", "兵团卫视高清",  "兵团卫视SD"],
+        "东方卫视": ["东方卫视HD", "东方卫视高清",  "东方卫视SD"],
+        "东南卫视": ["东南卫视HD", "东南卫视高清",  "东南卫视SD"],
+        "凤凰卫视中文台": ["凤凰卫视中文台HD", "凤凰卫视中文台高清",  "凤凰卫视中文台SD"],
+        "凤凰卫视资讯台": ["凤凰卫视资讯台HD", "凤凰卫视资讯台高清",  "凤凰卫视资讯台SD"],
+        "福建东南卫视": ["福建东南卫视HD", "福建东南卫视高清",  "福建东南卫视SD"],
+        "福建卫视": ["福建卫视HD", "福建卫视高清",  "福建卫视SD"],
+        "甘肃卫视": ["甘肃卫视HD", "甘肃卫视高清",  "甘肃卫视SD"],
+        "广东大湾区卫视": ["广东大湾区卫视HD", "广东大湾区卫视高清",  "广东大湾区卫视SD"],
+        "广东南方卫视": ["广东南方卫视HD", "广东南方卫视高清",  "广东南方卫视SD"],
+        "广东卫视": ["广东卫视HD", "广东卫视高清",  "广东卫视SD"],
+        "广西卫视": ["广西卫视HD", "广西卫视高清",  "广西卫视SD"],
+        "贵州卫视": ["贵州卫视HD", "贵州卫视高清",  "贵州卫视SD"],
+        "海南卫视": ["海南卫视HD", "海南卫视高清",  "海南卫视SD"],
+        "河北卫视": ["河北卫视HD", "河北卫视高清",  "河北卫视SD"],
+        "黑龙江卫视": ["黑龙江卫视HD", "黑龙江卫视高清",  "黑龙江卫视SD"],
+        "湖北卫视": ["湖北卫视HD", "湖北卫视高清",  "湖北卫视SD"],
+        "湖南卫视": ["湖南卫视HD", "湖南卫视高清",  "湖南卫视SD"],
+        "黄河卫视": ["黄河卫视HD", "黄河卫视高清",  "黄河卫视SD"],
+        "吉林卫视": ["吉林卫视HD", "吉林卫视高清",  "吉林卫视SD"],
+        "吉林延边卫视": ["吉林延边卫视HD", "吉林延边卫视高清",  "吉林延边卫视SD"],
+        "江苏卫视": ["江苏卫视HD", "江苏卫视高清",  "江苏卫视SD"],
+        "江西卫视": ["江西卫视HD", "江西卫视高清",  "江西卫视SD"],
+        "辽宁卫视": ["辽宁卫视HD", "辽宁卫视高清",  "辽宁卫视SD"],
+        "旅游卫视": ["旅游卫视HD", "旅游卫视高清",  "旅游卫视SD"],
+        "南方卫视": ["南方卫视HD", "南方卫视高清",  "南方卫视SD"],
+        "内蒙古卫视": ["内蒙古卫视HD", "内蒙古卫视高清",  "内蒙古卫视SD"],
+        "内蒙卫视": ["内蒙卫视HD", "内蒙卫视高清",  "内蒙卫视SD"],
+        "宁夏卫视": ["宁夏卫视HD", "宁夏卫视高清",  "宁夏卫视SD"],
+        "农林卫视": ["农林卫视HD", "农林卫视高清",  "农林卫视SD"],
+        "青海卫视": ["青海卫视HD", "青海卫视高清",  "青海卫视SD"],
+        "三沙卫视": ["三沙卫视HD", "三沙卫视高清",  "三沙卫视SD"],
+        "厦门卫视": ["厦门卫视HD", "厦门卫视高清",  "厦门卫视SD"],
+        "山东卫视": ["山东卫视HD", "山东卫视高清",  "山东卫视SD"],
+        "山西卫视": ["山西卫视HD", "山西卫视高清",  "山西卫视SD"],
+        "陕西卫视": ["陕西卫视HD", "陕西卫视高清",  "陕西卫视SD"],
+        "上海东方卫视": ["上海东方卫视HD", "上海东方卫视高清",  "上海东方卫视SD"],
+        "上海卫视": ["上海卫视HD", "上海卫视高清",  "上海卫视SD"],
+        "深圳卫视": ["深圳卫视HD", "深圳卫视高清",  "深圳卫视SD"],
+        "四川卫视": ["四川卫视HD", "四川卫视高清",  "四川卫视SD"],
+        "天津卫视": ["天津卫视HD", "天津卫视高清",  "天津卫视SD"],
+        "西藏卫视": ["西藏卫视HD", "西藏卫视高清",  "西藏卫视SD"],
+        "香港卫视": ["香港卫视HD", "香港卫视高清",  "香港卫视SD"],
+        "新疆卫视": ["新疆卫视HD", "新疆卫视高清",  "新疆卫视SD"],
+        "星空卫视": ["星空卫视HD", "星空卫视高清",  "星空卫视SD"],
+        "云南卫视": ["云南卫视HD", "云南卫视高清",  "云南卫视SD"],
+        "浙江卫视": ["浙江卫视HD", "浙江卫视高清",  "浙江卫视SD"],
+        "重庆卫视": ["重庆卫视HD", "重庆卫视高清",  "重庆卫视SD"], 
+        # ... (此处省略部分以保持长度, 实际使用时请保留您完整的字典)
     }.items()
     for alias in aliases
 }
@@ -245,7 +245,7 @@ def setup_logger() -> None:
 def get_resolution_value(res_str: str) -> int:
     """
     计算分辨率像素总值 (宽*高)
-    用于比较分辨率高低，例如 1920x1080 -> 2073600
+    用于比较分辨率高低, 例如 1920x1080 -> 2073600
     """
     if not res_str:
         return 0
@@ -255,7 +255,7 @@ def get_resolution_value(res_str: str) -> int:
     return 0
 
 def clean_url(raw: str) -> str:
-    """清理 URL，移除 $ 后参数及多余空格"""
+    """清理 URL, 移除 $ 后参数及多余空格"""
     return re.sub(r'[\$•].*|\s+.*', '', raw.strip()).rstrip('/?&')
 
 def is_valid_url(u: str) -> bool:
@@ -281,7 +281,7 @@ def get_host_key(u: str) -> Optional[str]:
 # ================== 自然排序辅助函数 ==================
 def natural_sort_key(s: str) -> tuple:
     """
-    返回可用于排序的元组，实现数字部分自然排序。
+    返回可用于排序的元组, 实现数字部分自然排序。
     例如：CCTV1, CCTV2, CCTV10 会按 1,2,10 排序。
     """
     def convert(text):
@@ -373,7 +373,7 @@ def guess_group(title: str) -> str:
     return "📺 其他频道"
 
 def extract_logo(channel: str) -> str:
-    """生成 logo URL（基于频道名，移除非字母数字字符）"""
+    """生成 logo URL（基于频道名, 移除非字母数字字符）"""
     clean_name = re.sub(r'[^\w]', '', channel).lower()
     return f"{Config.LOGO_BASE_URL}{clean_name}.png"
 
@@ -394,9 +394,9 @@ async def get_speed_with_download(url: str, session: ClientSession, headers: dic
     3. 返回平均速度、延迟、总大小
     
     逻辑：
-    - 持续下载数据块，记录每个时间窗口的瞬时速度
-    - 当采样点达到 STABILITY_WINDOW 且波动小于 STABILITY_THRESHOLD 时，判定为稳定，提前返回
-    - 若超时或未稳定，返回平均值
+    - 持续下载数据块, 记录每个时间窗口的瞬时速度
+    - 当采样点达到 STABILITY_WINDOW 且波动小于 STABILITY_THRESHOLD 时, 判定为稳定, 提前返回
+    - 若超时或未稳定, 返回平均值
     """
     start_time = time.time()
     delay = -1
@@ -446,7 +446,7 @@ async def get_speed_with_download(url: str, session: ClientSession, headers: dic
     except Exception:
         pass
     
-    # 超时或未稳定，返回平均值
+    # 超时或未稳定, 返回平均值
     total_time = time.time() - start_time
     speed_val = total_size / total_time / 1024 / 1024 if total_time > 0 else 0.0
     return {
@@ -461,7 +461,7 @@ async def get_m3u8_segments(url: str, session: ClientSession, headers: dict, tim
     """
     【Guovin 核心逻辑】解析 M3U8 获取分片 URL
     逻辑：
-    1. 如果是 Master Playlist (含子播放列表)，选择带宽最高的子流
+    1. 如果是 Master Playlist (含子播放列表), 选择带宽最高的子流
     2. 提取前 5 个 TS 分片 URL 用于测速
     """
     try:
@@ -492,7 +492,7 @@ async def get_m3u8_segments(url: str, session: ClientSession, headers: dict, tim
 async def probe_ffmpeg(url: str, timeout: int) -> Dict[str, Any]:
     """
     【降级策略】调用 ffprobe 获取详细信息
-    当 HTTP 测速失败或速度为 0 时，使用此方法确认流是否有效并获取分辨率
+    当 HTTP 测速失败或速度为 0 时, 使用此方法确认流是否有效并获取分辨率
     """
     def _run():
         try:
@@ -525,7 +525,7 @@ async def probe_ffmpeg(url: str, timeout: int) -> Dict[str, Any]:
 async def run_ocr_check_async(url: str, timeout: int) -> bool:
     """
     【增强特性】OCR 检测
-    对流截图并识别文字，检测"登录墙"、"区域限制"等软错误
+    对流截图并识别文字, 检测"登录墙"、"区域限制"等软错误
     """
     if not OCR_AVAILABLE:
         return True
@@ -599,7 +599,7 @@ async def test_channel_speed(channel_info: Dict[str, Any], session: ClientSessio
                         result['speed'] = total_size / total_time / 1024 / 1024 if total_time > 0 else 0
                         result['delay'] = avg_delay
                 else:
-                    # 解析失败，尝试直接下载主文件
+                    # 解析失败, 尝试直接下载主文件
                     res = await get_speed_with_download(url, session, headers, Config.READ_TIMEOUT)
                     if res['size'] > 0:
                         result['alive'] = True
@@ -615,7 +615,7 @@ async def test_channel_speed(channel_info: Dict[str, Any], session: ClientSessio
 
             # 2. 结果后处理：FFmpeg 降级探测 (Guovin logic)
             if result['alive']:
-                # 如果速度极低但延迟正常，尝试 FFmpeg 确认是否有流
+                # 如果速度极低但延迟正常, 尝试 FFmpeg 确认是否有流
                 if result['speed'] < 0.05 and result['delay'] != -1:
                     ff_info = await probe_ffmpeg(url, Config.TIMEOUT)
                     if ff_info.get('resolution'):
@@ -650,8 +650,8 @@ async def run_host_level_speed_test(channels: List[Dict[str, Any]], session: Cli
     """
     主机级测速：
     - 对每个主机选取代表性 URL（优先 .m3u8）进行完整测速
-    - 如果代表性 URL 失败，尝试最多 3 个备选 URL
-    - 返回主机质量字典，以及填充了测速结果的频道列表
+    - 如果代表性 URL 失败, 尝试最多 3 个备选 URL
+    - 返回主机质量字典, 以及填充了测速结果的频道列表
     """
     # 构建 host -> 该主机所有 URL 的映射
     host_to_urls: DefaultDict[str, List[Dict[str, Any]]] = defaultdict(list)
@@ -672,7 +672,7 @@ async def run_host_level_speed_test(channels: List[Dict[str, Any]], session: Cli
         # 对代表性 URL 进行完整测速
         result = await test_channel_speed({"url": rep_url, "name": "rep"}, session, semaphore)
         
-        # 如果失败，尝试其他备选（最多 3 个）
+        # 如果失败, 尝试其他备选（最多 3 个）
         if not result['alive']:
             candidates = [u for u in urls if u != rep_url][:3]
             for cand in candidates:
@@ -736,7 +736,7 @@ def filter_and_sort_results(results: List[Dict[str, Any]]) -> List[Dict[str, Any
                 
         valid_results.append(r)
     
-    # 排序：速度降序，速度相同则延迟低者优先
+    # 排序：速度降序, 速度相同则延迟低者优先
     valid_results.sort(key=lambda x: (x['speed'], -x['delay']), reverse=True)
     return valid_results
 
@@ -933,7 +933,7 @@ def sort_channels_with_predefined(channels: List[Dict[str, Any]], predefined_ord
     return ordered + remaining
 
 def generate_outputs(final_channels: List[Dict[str, Any]], stats: Dict[str, Any], source_details: List[Dict[str, Any]], channel_order: Dict[str, List[str]]):
-    """生成输出文件和报告，支持预定义频道顺序"""
+    """生成输出文件和报告, 支持预定义频道顺序"""
     group_to_channels: DefaultDict[str, List[Dict[str, Any]]] = defaultdict(list)
     for item in final_channels:
         g = guess_group(item['name'])
@@ -986,11 +986,11 @@ def send_bark_report(report_path: str, device_key: str) -> None:
         logging.error(f"读取报告文件失败: {e}")
         return
 
-    # Bark 消息正文有长度限制，一般建议不超过 2000 字符（实际可到 4000 左右）
-    # 这里取前 1500 字符，若截断则添加提示
+    # Bark 消息正文有长度限制, 一般建议不超过 2000 字符（实际可到 4000 左右）
+    # 这里取前 1500 字符, 若截断则添加提示
     max_len = 1500
     if len(content) > max_len:
-        content = content[:max_len] + "\n\n... (内容过长，请查看完整报告)"
+        content = content[:max_len] + "\n\n... (内容过长, 请查看完整报告)"
     
     # 发送请求
     import requests
@@ -1007,25 +1007,25 @@ def send_bark_report(report_path: str, device_key: str) -> None:
         logging.error(f"Bark 发送异常: {e}")
 
 def load_channel_order() -> Dict[str, List[str]]:
-    """加载频道顺序配置文件，文件不存在或无效时返回空字典"""
+    """加载频道顺序配置文件, 文件不存在或无效时返回空字典"""
     if not os.path.exists(Config.CHANNEL_ORDER_FILE):
-        logging.info("未找到频道顺序配置文件，将使用自然排序")
+        logging.info("未找到频道顺序配置文件, 将使用自然排序")
         return {}
     try:
         with open(Config.CHANNEL_ORDER_FILE, 'r', encoding='utf-8') as f:
             data = json.load(f)
         if not isinstance(data, dict):
-            logging.warning("频道顺序配置文件格式错误，应为JSON对象，使用自然排序")
+            logging.warning("频道顺序配置文件格式错误, 应为JSON对象, 使用自然排序")
             return {}
         # 可选：验证每个值是否为列表
         for k, v in data.items():
             if not isinstance(v, list):
-                logging.warning(f"分组 '{k}' 的顺序配置不是列表，将忽略该分组")
+                logging.warning(f"分组 '{k}' 的顺序配置不是列表, 将忽略该分组")
                 data[k] = []
-        logging.info(f"已加载频道顺序配置，包含 {len(data)} 个分组")
+        logging.info(f"已加载频道顺序配置, 包含 {len(data)} 个分组")
         return data
     except Exception as e:
-        logging.warning(f"加载频道顺序配置文件失败: {e}，将使用自然排序")
+        logging.warning(f"加载频道顺序配置文件失败: {e}, 将使用自然排序")
         return {}
 
 def main():
@@ -1091,13 +1091,13 @@ def main():
         loop.close()
         
     elapsed = time.time() - start_time
-    logging.info(f"⏱️ 测速完成，耗时: {elapsed:.2f} 秒，有效结果: {len(valid_results)}")
+    logging.info(f"⏱️ 测速完成, 耗时: {elapsed:.2f} 秒, 有效结果: {len(valid_results)}")
     
     # 4. 质量评估与排序 (Guovin 算法)
     final_list = filter_and_sort_results(valid_results)
     logging.info(f"🎯 质量过滤后剩余: {len(final_list)}")
 
-    # ===== 按频道名去重，只保留最优源 =====
+    # ===== 按频道名去重, 只保留最优源 =====
     best_per_channel = {}
     for item in final_list:
         name = item['name']
@@ -1123,7 +1123,7 @@ def main():
     if device_key:
         send_bark_report(Config.REPORT_FILE, device_key)
     else:
-        logging.info("未配置 BARK_DEVICE_KEY，跳过通知")
+        logging.info("未配置 BARK_DEVICE_KEY, 跳过通知")
 
 if __name__ == "__main__":
     try:
@@ -1141,11 +1141,11 @@ if __name__ == "__main__":
 # IPTV 直播源智能清洗与验证系统（v2.0 Strict - Guovin Logic Edition）
 
 # 【核心逻辑说明】
-# 本脚本严格遵循 Guovin/iptv-api 的核心业务逻辑，同时保留了原有的 OCR 检测和分组功能。
+# 本脚本严格遵循 Guovin/iptv-api 的核心业务逻辑, 同时保留了原有的 OCR 检测和分组功能。
 
 # 1. 频道标准化 (normalize_channel_name):
 #    - 多频道名拆分 (A-B-C -> A)
-#    - 别名映射 (长匹配优先，基于 CHANNEL_ALIAS_MAP)
+#    - 别名映射 (长匹配优先, 基于 CHANNEL_ALIAS_MAP)
 #    - 移除括号及内容
 #    - 统一连接符为空格
 #    - 移除冗余后缀 (HD, 频道, TV 等)
@@ -1153,9 +1153,9 @@ if __name__ == "__main__":
 #    - CGTN 前缀标准化
 
 # 2. 测速流程 (test_channel_speed):
-#    - M3U8 分片测速：解析播放列表，下载前 5 个 TS 分片计算真实速度
+#    - M3U8 分片测速：解析播放列表, 下载前 5 个 TS 分片计算真实速度
 #    - 滑动窗口稳定性算法：连续采样速度波动 < 15% 才判定为有效速度
-#    - FFmpeg 降级探测：HTTP 测速失败时，调用 ffprobe 获取分辨率/编码
+#    - FFmpeg 降级探测：HTTP 测速失败时, 调用 ffprobe 获取分辨率/编码
 #    - OCR 软错误检测：识别“登录墙”、“区域限制”等无效画面
 
 # 3. 质量评估 (filter_and_sort_results):
@@ -1163,7 +1163,7 @@ if __name__ == "__main__":
 #    - 排序策略：速度降序 -> 延迟升序
 
 # 4. 架构:
-#    - 完全异步 (AsyncIO + Aiohttp)，支持高并发测速
+#    - 完全异步 (AsyncIO + Aiohttp), 支持高并发测速
 # """
 
 # import os
@@ -1221,13 +1221,13 @@ if __name__ == "__main__":
 #     READ_TIMEOUT: int = 8               # 读取超时
 #     MAX_CONCURRENT: int = 100            # 最大并发数 (Semaphore 限制)
     
-#     # 新增：是否使用主机级测速（False=每个URL独立测速，True=同主机复用测速结果）
+#     # 新增：是否使用主机级测速（False=每个URL独立测速, True=同主机复用测速结果）
 #     USE_HOST_LEVEL_SPEED: bool = True
 
 #     # 滑动窗口稳定性算法参数
-#     MIN_MEASURE_TIME: float = 1.0       # 最小测速时长 (秒)，低于此时长不判定稳定
+#     MIN_MEASURE_TIME: float = 1.0       # 最小测速时长 (秒), 低于此时长不判定稳定
 #     STABILITY_WINDOW: int = 4           # 滑动窗口大小 (采样点数)
-#     STABILITY_THRESHOLD: float = 0.15   # 速度波动阈值 (0.15 = 15%)，波动超过此值视为不稳定
+#     STABILITY_THRESHOLD: float = 0.15   # 速度波动阈值 (0.15 = 15%), 波动超过此值视为不稳定
 #     MIN_BYTES: int = 64 * 1024          # 最小测试字节数 (64KB)
     
 #     # --- 质量评估策略 ---
@@ -1236,7 +1236,7 @@ if __name__ == "__main__":
 #     MIN_RESOLUTION_VALUE: int = 0               # 最小分辨率像素值 (0=不限制)
     
 #     # 分辨率 - 速率映射表 (MB/s)
-#     # 逻辑：如果测得速度低于该分辨率对应的阈值，则视为不合格（可能是假高清或卡顿）
+#     # 逻辑：如果测得速度低于该分辨率对应的阈值, 则视为不合格（可能是假高清或卡顿）
 #     RESOLUTION_SPEED_MAP: Dict[str, float] = {
 #         "1920x1080": 1.5,
 #         "1280x720": 0.8,
@@ -1268,7 +1268,7 @@ if __name__ == "__main__":
 #     ]
 
 # # ================== 频道别名字典 (保持原有完整映射) ==================
-# # 逻辑：将各种变体名称映射为标准名称，用于去重和分组
+# # 逻辑：将各种变体名称映射为标准名称, 用于去重和分组
 # CHANNEL_ALIAS_MAP: Dict[str, str] = {
 #     alias: std
 #     for std, aliases in {
@@ -1303,7 +1303,7 @@ if __name__ == "__main__":
 #         "TVB Pearl": ["明珠台"],
 #         "凤凰卫视中文台": ["凤凰中文", "凤凰中文台", "凤凰卫视中文"],
 #         "凤凰卫视资讯台": ["凤凰资讯", "凤凰资讯台", "凤凰咨询"],
-#         # ... (此处省略部分以保持长度，实际使用时请保留您完整的字典)
+#         # ... (此处省略部分以保持长度, 实际使用时请保留您完整的字典)
 #     }.items()
 #     for alias in aliases
 # }
@@ -1327,7 +1327,7 @@ if __name__ == "__main__":
 # def get_resolution_value(res_str: str) -> int:
 #     """
 #     计算分辨率像素总值 (宽*高)
-#     用于比较分辨率高低，例如 1920x1080 -> 2073600
+#     用于比较分辨率高低, 例如 1920x1080 -> 2073600
 #     """
 #     if not res_str:
 #         return 0
@@ -1337,7 +1337,7 @@ if __name__ == "__main__":
 #     return 0
 
 # def clean_url(raw: str) -> str:
-#     """清理 URL，移除 $ 后参数及多余空格"""
+#     """清理 URL, 移除 $ 后参数及多余空格"""
 #     return re.sub(r'[\$•].*|\s+.*', '', raw.strip()).rstrip('/?&')
 
 # def is_valid_url(u: str) -> bool:
@@ -1444,7 +1444,7 @@ if __name__ == "__main__":
 #     return "📺 其他频道"
 
 # def extract_logo(channel: str) -> str:
-#     """生成 logo URL（基于频道名，移除非字母数字字符）"""
+#     """生成 logo URL（基于频道名, 移除非字母数字字符）"""
 #     clean_name = re.sub(r'[^\w]', '', channel).lower()
 #     return f"{Config.LOGO_BASE_URL}{clean_name}.png"
 
@@ -1465,9 +1465,9 @@ if __name__ == "__main__":
 #     3. 返回平均速度、延迟、总大小
     
 #     逻辑：
-#     - 持续下载数据块，记录每个时间窗口的瞬时速度
-#     - 当采样点达到 STABILITY_WINDOW 且波动小于 STABILITY_THRESHOLD 时，判定为稳定，提前返回
-#     - 若超时或未稳定，返回平均值
+#     - 持续下载数据块, 记录每个时间窗口的瞬时速度
+#     - 当采样点达到 STABILITY_WINDOW 且波动小于 STABILITY_THRESHOLD 时, 判定为稳定, 提前返回
+#     - 若超时或未稳定, 返回平均值
 #     """
 #     start_time = time.time()
 #     delay = -1
@@ -1517,7 +1517,7 @@ if __name__ == "__main__":
 #     except Exception:
 #         pass
     
-#     # 超时或未稳定，返回平均值
+#     # 超时或未稳定, 返回平均值
 #     total_time = time.time() - start_time
 #     speed_val = total_size / total_time / 1024 / 1024 if total_time > 0 else 0.0
 #     return {
@@ -1532,7 +1532,7 @@ if __name__ == "__main__":
 #     """
 #     【Guovin 核心逻辑】解析 M3U8 获取分片 URL
 #     逻辑：
-#     1. 如果是 Master Playlist (含子播放列表)，选择带宽最高的子流
+#     1. 如果是 Master Playlist (含子播放列表), 选择带宽最高的子流
 #     2. 提取前 5 个 TS 分片 URL 用于测速
 #     """
 #     try:
@@ -1563,7 +1563,7 @@ if __name__ == "__main__":
 # async def probe_ffmpeg(url: str, timeout: int) -> Dict[str, Any]:
 #     """
 #     【降级策略】调用 ffprobe 获取详细信息
-#     当 HTTP 测速失败或速度为 0 时，使用此方法确认流是否有效并获取分辨率
+#     当 HTTP 测速失败或速度为 0 时, 使用此方法确认流是否有效并获取分辨率
 #     """
 #     def _run():
 #         try:
@@ -1596,7 +1596,7 @@ if __name__ == "__main__":
 # async def run_ocr_check_async(url: str, timeout: int) -> bool:
 #     """
 #     【增强特性】OCR 检测
-#     对流截图并识别文字，检测“登录墙”、“区域限制”等软错误
+#     对流截图并识别文字, 检测“登录墙”、“区域限制”等软错误
 #     """
 #     if not OCR_AVAILABLE:
 #         return True
@@ -1670,7 +1670,7 @@ if __name__ == "__main__":
 #                         result['speed'] = total_size / total_time / 1024 / 1024 if total_time > 0 else 0
 #                         result['delay'] = avg_delay
 #                 else:
-#                     # 解析失败，尝试直接下载主文件
+#                     # 解析失败, 尝试直接下载主文件
 #                     res = await get_speed_with_download(url, session, headers, Config.READ_TIMEOUT)
 #                     if res['size'] > 0:
 #                         result['alive'] = True
@@ -1686,7 +1686,7 @@ if __name__ == "__main__":
 
 #             # 2. 结果后处理：FFmpeg 降级探测 (Guovin logic)
 #             if result['alive']:
-#                 # 如果速度极低但延迟正常，尝试 FFmpeg 确认是否有流
+#                 # 如果速度极低但延迟正常, 尝试 FFmpeg 确认是否有流
 #                 if result['speed'] < 0.05 and result['delay'] != -1:
 #                     ff_info = await probe_ffmpeg(url, Config.TIMEOUT)
 #                     if ff_info.get('resolution'):
@@ -1721,8 +1721,8 @@ if __name__ == "__main__":
 #     """
 #     主机级测速：
 #     - 对每个主机选取代表性 URL（优先 .m3u8）进行完整测速
-#     - 如果代表性 URL 失败，尝试最多 3 个备选 URL
-#     - 返回主机质量字典，以及填充了测速结果的频道列表
+#     - 如果代表性 URL 失败, 尝试最多 3 个备选 URL
+#     - 返回主机质量字典, 以及填充了测速结果的频道列表
 #     """
 #     # 构建 host -> 该主机所有 URL 的映射
 #     host_to_urls: DefaultDict[str, List[Dict[str, Any]]] = defaultdict(list)
@@ -1743,7 +1743,7 @@ if __name__ == "__main__":
 #         # 对代表性 URL 进行完整测速
 #         result = await test_channel_speed({"url": rep_url, "name": "rep"}, session, semaphore)
         
-#         # 如果失败，尝试其他备选（最多 3 个）
+#         # 如果失败, 尝试其他备选（最多 3 个）
 #         if not result['alive']:
 #             candidates = [u for u in urls if u != rep_url][:3]
 #             for cand in candidates:
@@ -1807,7 +1807,7 @@ if __name__ == "__main__":
                 
 #         valid_results.append(r)
     
-#     # 排序：速度降序，速度相同则延迟低者优先
+#     # 排序：速度降序, 速度相同则延迟低者优先
 #     valid_results.sort(key=lambda x: (x['speed'], -x['delay']), reverse=True)
 #     return valid_results
 
@@ -2086,7 +2086,7 @@ if __name__ == "__main__":
 #         loop.close()
         
 #     elapsed = time.time() - start_time
-#     logging.info(f"⏱️ 测速完成，耗时: {elapsed:.2f} 秒，有效结果: {len(valid_results)}")
+#     logging.info(f"⏱️ 测速完成, 耗时: {elapsed:.2f} 秒, 有效结果: {len(valid_results)}")
     
 #     # 4. 质量评估与排序 (Guovin 算法)
 #     final_list = filter_and_sort_results(valid_results)
